@@ -51,27 +51,41 @@ function _stopLoading() {
 }
 
 function getToken() {
-  return localStorage.getItem('vs_token') || '';
+  // Check localStorage first (Remember Me), then sessionStorage (session-only)
+  return localStorage.getItem('vs_token') || sessionStorage.getItem('vs_token') || '';
 }
 
-function setToken(token) {
-  if (token) localStorage.setItem('vs_token', token);
-  else localStorage.removeItem('vs_token');
+function setToken(token, remember = true) {
+  // Always clear both storages first to avoid duplicates
+  localStorage.removeItem('vs_token');
+  sessionStorage.removeItem('vs_token');
+  if (token) {
+    if (remember) localStorage.setItem('vs_token', token);
+    else sessionStorage.setItem('vs_token', token);
+  }
 }
 
 function getUser() {
-  try { return JSON.parse(localStorage.getItem('vs_user') || 'null'); }
-  catch (e) { return null; }
+  try {
+    return JSON.parse(localStorage.getItem('vs_user') || sessionStorage.getItem('vs_user') || 'null');
+  } catch (e) { return null; }
 }
 
-function setUser(user) {
-  if (user) localStorage.setItem('vs_user', JSON.stringify(user));
-  else localStorage.removeItem('vs_user');
+function setUser(user, remember = true) {
+  localStorage.removeItem('vs_user');
+  sessionStorage.removeItem('vs_user');
+  if (user) {
+    const data = JSON.stringify(user);
+    if (remember) localStorage.setItem('vs_user', data);
+    else sessionStorage.setItem('vs_user', data);
+  }
 }
 
 function clearSession() {
-  setToken(null);
-  setUser(null);
+  localStorage.removeItem('vs_token');
+  sessionStorage.removeItem('vs_token');
+  localStorage.removeItem('vs_user');
+  sessionStorage.removeItem('vs_user');
 }
 
 async function request(method, path, { body, params, isForm } = {}) {

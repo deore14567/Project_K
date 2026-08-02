@@ -5,5 +5,5 @@ set -e
 
 cd "$(dirname "$0")/.."
 echo "Building Tailwind CSS..."
-npx tailwindcss -i ./frontend/css/tailwind-input.css -o ./frontend/css/tailwind.css --minify
+./node_modules/.bin/tailwindcss -i ./frontend/css/tailwind-input.css -o ./frontend/css/tailwind.css --minify
 echo "Done. Output: frontend/css/tailwind.css ($(wc -c < frontend/css/tailwind.css) bytes)"

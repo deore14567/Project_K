@@ -22,6 +22,7 @@
   const state = {
     page: 1, per_page: 20, q: getQueryParam('q') || '',
     village: '', ward: '', category: '', gender: '', sort: 'created_at:desc',
+    selectedIds: new Set(),   // tracks selected resident IDs across pages
   };
 
   main.innerHTML = `
@@ -70,12 +71,44 @@
       </div>
     </div>
 
+    <!-- Selection bar (hidden when nothing selected) -->
+    <div id="selection-bar" class="hidden bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-800 rounded-xl p-3 mb-4 flex items-center justify-between gap-3 flex-wrap">
+      <div class="flex items-center gap-3">
+        <span class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-indigo-600 text-white text-xs font-bold" id="selection-count">0</span>
+        <span class="text-sm font-medium text-indigo-700 dark:text-indigo-300">resident<span id="selection-plural">s</span> selected</span>
+        <button onclick="clearSelection()" class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline ml-2">Clear selection</button>
+      </div>
+      <div class="relative" id="custom-download-wrap">
+        <button onclick="toggleCustomDownloadMenu()" class="inline-flex items-center gap-2 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm rounded-lg">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+          Download Selected
+          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+        </button>
+        <div id="custom-download-menu" class="hidden absolute right-0 mt-2 w-56 bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-slate-200 dark:border-slate-700 z-10 py-1">
+          <div class="px-3 py-2 border-b border-slate-100 dark:border-slate-700">
+            <label class="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">List title (optional)</label>
+            <input id="custom-title" type="text" placeholder="e.g. PM Awas Beneficiaries"
+              class="w-full px-2 py-1 text-sm rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white" />
+          </div>
+          <button onclick="downloadSelected('xlsx')" class="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700">📊 Excel (.xlsx)</button>
+          <button onclick="downloadSelected('pdf')" class="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700">📄 PDF (.pdf)</button>
+          <button onclick="downloadSelected('docx')" class="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700">📝 Word (.docx)</button>
+          <button onclick="downloadSelected('csv')" class="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700">🗂️ CSV (.csv)</button>
+          <button onclick="downloadSelected('txt')" class="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700">📃 Text (.txt)</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Table -->
     <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
       <div class="overflow-x-auto">
         <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
           <thead class="bg-slate-50 dark:bg-slate-700/50">
             <tr>
+              <th class="px-4 py-3 w-10">
+                <input id="select-all" type="checkbox" onclick="toggleSelectAll()"
+                  class="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-indigo-600 focus:ring-indigo-500 focus:ring-offset-0 bg-white dark:bg-slate-700 cursor-pointer" />
+              </th>
               <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Resident</th>
               <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Contact</th>
               <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Village / Ward</th>
@@ -85,7 +118,7 @@
             </tr>
           </thead>
           <tbody id="res-tbody" class="divide-y divide-slate-100 dark:divide-slate-700">
-            ${Array(8).fill(skeletonRow(6)).join('')}
+            ${Array(8).fill(skeletonRow(7)).join('')}
           </tbody>
         </table>
       </div>
@@ -126,10 +159,15 @@
         sort: state.sort,
       });
       if (!res.items.length) {
-        tbody.innerHTML = `<tr><td colspan="6" class="px-4 py-10 text-center text-slate-500">No residents found.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" class="px-4 py-10 text-center text-slate-500">No residents found.</td></tr>`;
       } else {
         tbody.innerHTML = res.items.map(r => `
-          <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/50 cursor-pointer" onclick="showProfile(${r.id})">
+          <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/50 cursor-pointer ${state.selectedIds.has(r.id) ? 'bg-indigo-50 dark:bg-indigo-900/20' : ''}" onclick="showProfile(${r.id})">
+            <td class="px-4 py-3" onclick="event.stopPropagation()">
+              <input type="checkbox" data-resident-id="${r.id}" ${state.selectedIds.has(r.id) ? 'checked' : ''}
+                onchange="toggleSelectResident(${r.id}, this.checked)"
+                class="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-indigo-600 focus:ring-indigo-500 focus:ring-offset-0 bg-white dark:bg-slate-700 cursor-pointer" />
+            </td>
             <td class="px-4 py-3">
               <div class="font-medium text-slate-800 dark:text-white">${escapeHtml(r.first_name)} ${escapeHtml(r.last_name || '')}</div>
               <div class="text-xs text-slate-500 dark:text-slate-400">${escapeHtml(r.resident_id)}</div>
@@ -152,11 +190,128 @@
           </tr>
         `).join('');
       }
+      updateSelectAllCheckbox(res.items);
       renderPagination(res);
+      updateSelectionBar();
     } catch (e) {
-      tbody.innerHTML = `<tr><td colspan="6" class="px-4 py-10 text-center text-rose-600">${escapeHtml(e.message)}</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="7" class="px-4 py-10 text-center text-rose-600">${escapeHtml(e.message)}</td></tr>`;
     }
   }
+
+  // --- Selection helpers ---
+  function updateSelectionBar() {
+    const count = state.selectedIds.size;
+    const bar = document.getElementById('selection-bar');
+    if (!bar) return;
+    if (count > 0) {
+      bar.classList.remove('hidden');
+      document.getElementById('selection-count').textContent = count;
+      document.getElementById('selection-plural').textContent = count === 1 ? '' : 's';
+    } else {
+      bar.classList.add('hidden');
+    }
+  }
+
+  function updateSelectAllCheckbox(items) {
+    const cb = document.getElementById('select-all');
+    if (!cb) return;
+    if (!items.length) {
+      cb.checked = false;
+      cb.indeterminate = false;
+      return;
+    }
+    const selectedCount = items.filter(i => state.selectedIds.has(i.id)).length;
+    cb.checked = selectedCount === items.length;
+    cb.indeterminate = selectedCount > 0 && selectedCount < items.length;
+  }
+
+  window.toggleSelectAll = () => {
+    const cb = document.getElementById('select-all');
+    const checkboxes = document.querySelectorAll('[data-resident-id]');
+    checkboxes.forEach(c => {
+      const id = parseInt(c.dataset.residentId, 10);
+      if (cb.checked) state.selectedIds.add(id);
+      else state.selectedIds.delete(id);
+      c.checked = cb.checked;
+    });
+    updateSelectionBar();
+    // Update row highlight
+    document.querySelectorAll('#res-tbody tr').forEach(tr => {
+      const cb = tr.querySelector('[data-resident-id]');
+      if (cb) {
+        tr.classList.toggle('bg-indigo-50', cb.checked);
+        tr.classList.toggle('dark:bg-indigo-900/20', cb.checked);
+      }
+    });
+  };
+
+  window.toggleSelectResident = (id, checked) => {
+    if (checked) state.selectedIds.add(id);
+    else state.selectedIds.delete(id);
+    updateSelectionBar();
+    // Update select-all state
+    const checkboxes = document.querySelectorAll('[data-resident-id]');
+    const visibleIds = Array.from(checkboxes).map(c => parseInt(c.dataset.residentId, 10));
+    const items = visibleIds.map(i => ({ id: i }));
+    updateSelectAllCheckbox(items);
+    // Highlight row
+    const tr = document.querySelector(`[data-resident-id="${id}"]`)?.closest('tr');
+    if (tr) {
+      tr.classList.toggle('bg-indigo-50', checked);
+      tr.classList.toggle('dark:bg-indigo-900/20', checked);
+    }
+  };
+
+  window.clearSelection = () => {
+    state.selectedIds.clear();
+    document.querySelectorAll('[data-resident-id]').forEach(c => { c.checked = false; });
+    const selectAll = document.getElementById('select-all');
+    if (selectAll) { selectAll.checked = false; selectAll.indeterminate = false; }
+    document.querySelectorAll('#res-tbody tr').forEach(tr => {
+      tr.classList.remove('bg-indigo-50', 'dark:bg-indigo-900/20');
+    });
+    updateSelectionBar();
+  };
+
+  window.toggleCustomDownloadMenu = () => {
+    const menu = document.getElementById('custom-download-menu');
+    if (menu) menu.classList.toggle('hidden');
+  };
+
+  // Close custom download menu on outside click
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('#custom-download-wrap') && !e.target.closest('#custom-download-menu')) {
+      const menu = document.getElementById('custom-download-menu');
+      if (menu) menu.classList.add('hidden');
+    }
+  });
+
+  window.downloadSelected = async (fmt) => {
+    const ids = Array.from(state.selectedIds);
+    if (!ids.length) { toast('No residents selected', 'warning'); return; }
+    const titleInput = document.getElementById('custom-title');
+    const title = titleInput ? titleInput.value.trim() : '';
+    // Close menu
+    const menu = document.getElementById('custom-download-menu');
+    if (menu) menu.classList.add('hidden');
+    try {
+      const body = { ids };
+      if (title) body.title = title;
+      const blob = await window.api.post(`/reports/residents/custom.${fmt}`, body);
+      const downloadUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      const ts = new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-');
+      a.download = `custom_residents_${ts}.${fmt}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(downloadUrl);
+      toast(`Downloaded ${ids.length} resident${ids.length === 1 ? '' : 's'} as ${fmt.toUpperCase()}`, 'success');
+    } catch (e) {
+      toast(`Download failed: ${e.message}`, 'error');
+    }
+  };
 
   function renderPagination(res) {
     const p = document.getElementById('pagination');

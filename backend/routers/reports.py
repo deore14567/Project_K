@@ -379,6 +379,74 @@ def export_report(
 
 
 # ---------------------------------------------------------------------------
+# Custom list endpoint: POST /reports/residents/custom.{format}
+# Body: { "ids": [1, 2, 3], "title": "Optional custom title" }
+# Returns a report containing only the specified residents.
+# ---------------------------------------------------------------------------
+from pydantic import BaseModel as PydanticBaseModel, Field as PydanticField
+
+
+class CustomListRequest(PydanticBaseModel):
+    ids: List[int] = PydanticField(..., min_length=1, max_length=10000)
+    title: Optional[str] = None
+
+
+def _residents_by_ids(db: Session, ids: List[int]):
+    """Fetch a specific set of residents by ID, preserving the given order."""
+    rows = db.query(models.Resident).filter(models.Resident.id.in_(ids)).all()
+    # Preserve the order of the input IDs
+    by_id = {r.id: r for r in rows}
+    ordered = [by_id[i] for i in ids if i in by_id]
+
+    headers = ["Resident ID", "First Name", "Last Name", "Gender", "Age",
+               "Mobile", "Email", "Village", "Ward", "Category", "Family ID", "Created At"]
+    data = [[r.resident_id, r.first_name, r.last_name, r.gender, r.age,
+             r.mobile_number, r.email, r.village, r.ward_number, r.category,
+             r.family_id, r.created_at.isoformat() if r.created_at else ""]
+            for r in ordered]
+    return headers, data, "Custom Resident List"
+
+
+@router.post("/residents/custom.{fmt}")
+def export_custom_residents(
+    fmt: str,
+    payload: CustomListRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(auth.require_admin_or_operator),
+):
+    """Generate a report for a custom selection of residents.
+
+    Body:
+      { "ids": [1, 2, 3], "title": "Beneficiaries for PM Awas Yojana" }
+
+    Use case: user selects specific residents on the list page and downloads
+    only those records — e.g. to share a list of eligible beneficiaries with
+    a government office.
+    """
+    fmt = fmt.lower()
+    if fmt not in FORMATS:
+        raise HTTPException(status_code=400,
+                            detail=f"Unsupported format '{fmt}'. Use one of: {', '.join(sorted(FORMATS))}")
+
+    headers, rows, default_title = _residents_by_ids(db, payload.ids)
+    title = payload.title or default_title
+
+    renderer = RENDERERS[fmt]
+    body = renderer(headers, rows, title)
+
+    filename = f"custom_residents_{dt.datetime.now().strftime('%Y%m%d_%H%M')}.{fmt}"
+    record_audit(db, user, "export_report", "residents", None,
+                 f"Exported custom resident list as {fmt.upper()} ({len(rows)} of {len(payload.ids)} requested IDs)", request)
+
+    return Response(
+        content=body,
+        media_type=MIME[fmt],
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+# ---------------------------------------------------------------------------
 # Backward-compatible CSV routes (keep old links working)
 # ---------------------------------------------------------------------------
 @router.get("/residents.csv")

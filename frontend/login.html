@@ -46,6 +46,15 @@
 
         <div id="error-msg" class="hidden text-sm text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-900/30 border border-rose-200 dark:border-rose-800 rounded-lg p-3"></div>
 
+        <div class="flex items-center justify-between">
+          <label class="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300 cursor-pointer select-none">
+            <input id="remember" name="remember" type="checkbox"
+              class="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-indigo-600 focus:ring-indigo-500 focus:ring-offset-0 bg-white dark:bg-slate-700" />
+            Remember me
+          </label>
+          <span class="text-xs text-slate-400" id="remember-hint">Keeps you logged in after closing the browser</span>
+        </div>
+
         <button type="submit" id="submit-btn"
           class="w-full py-2.5 px-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-medium rounded-lg shadow-lg shadow-indigo-500/30 transition disabled:opacity-50 disabled:cursor-not-allowed">
           <span id="btn-text">Sign In</span>
@@ -71,6 +80,21 @@
   <script src="/js/api.js"></script>
   <script>
     document.getElementById('yr').textContent = new Date().getFullYear();
+
+    // Default "Remember me" to checked (most users want it)
+    const rememberCheckbox = document.getElementById('remember');
+    rememberCheckbox.checked = true;
+
+    // Update hint text based on checkbox state
+    const hintEl = document.getElementById('remember-hint');
+    function updateHint() {
+      hintEl.textContent = rememberCheckbox.checked
+        ? 'Keeps you logged in after closing the browser'
+        : 'Logs out automatically when you close the browser';
+    }
+    rememberCheckbox.addEventListener('change', updateHint);
+    updateHint();
+
     // Redirect if already logged in
     if (window.auth.getToken() && window.auth.getUser()) {
       window.location.replace('/dashboard.html');
@@ -87,6 +111,7 @@
       e.preventDefault();
       const email = document.getElementById('email').value.trim().toLowerCase();
       const password = document.getElementById('password').value;
+      const remember = rememberCheckbox.checked;
       const errEl = document.getElementById('error-msg');
       const btn = document.getElementById('submit-btn');
       const txt = document.getElementById('btn-text');
@@ -97,8 +122,8 @@
 
       try {
         const res = await window.api.post('/auth/login', { email, password });
-        window.auth.setToken(res.access_token);
-        window.auth.setUser(res.user);
+        window.auth.setToken(res.access_token, remember);
+        window.auth.setUser(res.user, remember);
         window.location.href = '/dashboard.html';
       } catch (err) {
         errEl.textContent = err.message || 'Login failed.';
