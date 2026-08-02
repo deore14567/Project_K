@@ -1,0 +1,24 @@
+{
+  "name": "village-setu",
+  "version": "1.0.0",
+  "description": "A production-ready, **online-only** web application for managing village residents, families, government schemes, applications, documents, and audit logs. Built with **FastAPI + SQLAlchemy + Cloud MySQL** on the backend and **HTML5 + Tailwind CSS + Vanilla JS** on the frontend, deployable to **Vercel** directly from GitHub.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/deore14567/Project_K.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/deore14567/Project_K/issues"
+  },
+  "homepage": "https://github.com/deore14567/Project_K#readme",
+  "devDependencies": {
+    "tailwindcss": "^3.4.17"
+  }
+}

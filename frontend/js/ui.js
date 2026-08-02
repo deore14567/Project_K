@@ -43,18 +43,22 @@ window.toast = toast;
 
 // --- Copy to clipboard ---------------------------------------------------
 async function copyToClipboard(text, label = 'Value') {
+  // Ensure text is a string (numbers, etc. get coerced)
+  if (text !== null && text !== undefined) text = String(text);
   if (!text) { toast(`${label} is empty`, 'warning'); return; }
   try {
     await navigator.clipboard.writeText(text);
     toast(`${label} copied to clipboard`, 'success', 2000);
   } catch (e) {
-    // Fallback
+    // Fallback for non-HTTPS contexts (e.g. localhost without TLS)
     const ta = document.createElement('textarea');
     ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.left = '-9999px';
     document.body.appendChild(ta);
     ta.select();
     try { document.execCommand('copy'); toast(`${label} copied`, 'success', 2000); }
-    catch (_) { toast('Clipboard not available', 'error'); }
+    catch (_) { toast('Clipboard not available — copy manually', 'error'); }
     ta.remove();
   }
 }
@@ -271,12 +275,29 @@ async function doLogout() {
 window.doLogout = doLogout;
 
 // --- Copy button helper --------------------------------------------------
+// Uses data attributes + event delegation to avoid HTML-escaping issues
+// with inline onclick handlers (double quotes in JSON.stringify broke
+// the onclick attribute).
 function copyButton(value, label) {
-  return `<button onclick="copyToClipboard(${JSON.stringify(value || '')}, ${JSON.stringify(label || 'Value')})" class="ml-1 inline-flex items-center text-slate-400 hover:text-indigo-600" title="Copy ${label || 'value'}">
+  // Encode value & label as base64 to survive HTML attribute parsing unscathed
+  const encodedValue = btoa(unescape(encodeURIComponent(String(value || ''))));
+  const encodedLabel = btoa(unescape(encodeURIComponent(String(label || 'Value'))));
+  return `<button data-copy-value="${encodedValue}" data-copy-label="${encodedLabel}" class="copy-btn ml-1 inline-flex items-center text-slate-400 hover:text-indigo-600" title="Copy ${label || 'value'}">
     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
   </button>`;
 }
 window.copyButton = copyButton;
+
+// Event delegation: any element with class "copy-btn" triggers copy
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('.copy-btn');
+  if (!btn) return;
+  e.preventDefault();
+  e.stopPropagation();
+  const value = decodeURIComponent(escape(atob(btn.dataset.copyValue || '')));
+  const label = decodeURIComponent(escape(atob(btn.dataset.copyLabel || 'Value')));
+  copyToClipboard(value, label);
+});
 
 // --- HTML escape ---------------------------------------------------------
 function escapeHtml(s) {
@@ -313,8 +334,10 @@ document.addEventListener('click', (e) => {
 // --- Generic report download helper --------------------------------------
 async function downloadReport(entity, fmt, params = '') {
   try {
-    const url = `/api/reports/${entity}.${fmt}${params ? '?' + params : ''}`;
-    const blob = await window.api.get(url);
+    // NOTE: api.get() already prepends API_BASE ('/api'), so the path
+    // here must NOT include the /api prefix.
+    const path = `/reports/${entity}.${fmt}${params ? '?' + params : ''}`;
+    const blob = await window.api.get(path);
     const downloadUrl = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = downloadUrl;
@@ -338,7 +361,7 @@ function printContent(html, title = 'Village Setu') {
   const w = window.open('', '_blank', 'width=900,height=650');
   if (!w) { toast('Pop-up blocked. Please allow pop-ups.', 'error'); return; }
   w.document.write(`<!doctype html><html><head><title>${title}</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/css/tailwind.css" />
     <style>@media print { .no-print { display: none; } body { padding: 24px; } }</style>
   </head><body class="bg-white text-slate-800">${html}
   <div class="no-print mt-6"><button onclick="window.print()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg">Print</button>

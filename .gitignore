@@ -36,3 +36,9 @@ uploads/*
 *.sqlite
 *.db
 node_modules/
+
+# ---- Tailwind build artifacts ----
+# Keep the generated tailwind.css (committed) but ignore the input source
+# and package-lock (not needed for deployment)
+frontend/css/tailwind-input.css
+package-lock.json
