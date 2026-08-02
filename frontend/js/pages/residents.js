@@ -53,7 +53,20 @@
             <option value="age:desc">Age (high→low)</option>
           </select>
         </div>
-        <a href="/api/reports/residents.csv" class="text-sm text-indigo-600 dark:text-indigo-400 hover:underline">Export CSV</a>
+        <div class="relative" id="download-menu-wrap">
+          <button onclick="toggleDownloadMenu()" class="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm rounded-lg">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+            Download List
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+          </button>
+          <div id="download-menu" class="hidden absolute right-0 mt-2 w-44 bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-slate-200 dark:border-slate-700 z-10 py-1">
+            <button onclick="downloadReport('residents', 'xlsx')" class="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700">📊 Excel (.xlsx)</button>
+            <button onclick="downloadReport('residents', 'pdf')" class="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700">📄 PDF (.pdf)</button>
+            <button onclick="downloadReport('residents', 'docx')" class="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700">📝 Word (.docx)</button>
+            <button onclick="downloadReport('residents', 'csv')" class="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700">🗂️ CSV (.csv)</button>
+            <button onclick="downloadReport('residents', 'txt')" class="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700">📃 Text (.txt)</button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -161,8 +174,9 @@
 
   window.gotoPage = (n) => { if (n >= 1) { state.page = n; loadList(); } };
 
+  // Expose hoisted functions to window so onclick="..." attributes can call them.
+  // (openResidentForm and runEligibility are assigned later as arrow functions.)
   window.showProfile = showProfile;
-  window.openResidentForm = openResidentForm;
   window.deleteResident = deleteResident;
 
   await loadList();

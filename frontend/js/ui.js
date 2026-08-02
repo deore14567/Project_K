@@ -294,6 +294,45 @@ function getQueryParam(name) {
 }
 window.getQueryParam = getQueryParam;
 
+// --- Download menu toggle ------------------------------------------------
+function toggleDownloadMenu() {
+  const menu = document.getElementById('download-menu');
+  if (!menu) return;
+  menu.classList.toggle('hidden');
+}
+window.toggleDownloadMenu = toggleDownloadMenu;
+
+// Close any open download menu when clicking outside
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('#download-menu-wrap') && !e.target.closest('#download-menu')) {
+    const menu = document.getElementById('download-menu');
+    if (menu) menu.classList.add('hidden');
+  }
+});
+
+// --- Generic report download helper --------------------------------------
+async function downloadReport(entity, fmt, params = '') {
+  try {
+    const url = `/api/reports/${entity}.${fmt}${params ? '?' + params : ''}`;
+    const blob = await window.api.get(url);
+    const downloadUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = downloadUrl;
+    const ts = new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-');
+    a.download = `${entity}_${ts}.${fmt}`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(downloadUrl);
+    toast(`${entity} report downloaded as ${fmt.toUpperCase()}`, 'success');
+    const menu = document.getElementById('download-menu');
+    if (menu) menu.classList.add('hidden');
+  } catch (e) {
+    toast(`Download failed: ${e.message}`, 'error');
+  }
+}
+window.downloadReport = downloadReport;
+
 // --- Print ---------------------------------------------------------------
 function printContent(html, title = 'Village Setu') {
   const w = window.open('', '_blank', 'width=900,height=650');

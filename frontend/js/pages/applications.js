@@ -35,10 +35,19 @@
       </div>
       <div class="mt-3 flex items-center justify-between flex-wrap gap-2">
         <button id="btn-search" class="px-4 py-1.5 bg-indigo-600 text-white text-sm rounded-lg">Apply Filters</button>
-        <div class="flex gap-2 text-sm">
-          <a href="/api/reports/applications.csv?status_filter=pending" class="text-indigo-600 hover:underline">Pending CSV</a>
-          <a href="/api/reports/applications.csv?status_filter=approved" class="text-emerald-600 hover:underline">Approved CSV</a>
-          <a href="/api/reports/applications.csv" class="text-slate-600 dark:text-slate-300 hover:underline">All CSV</a>
+        <div class="relative" id="download-menu-wrap">
+          <button onclick="toggleDownloadMenu()" class="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm rounded-lg">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+            Download List
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+          </button>
+          <div id="download-menu" class="hidden absolute right-0 mt-2 w-44 bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-slate-200 dark:border-slate-700 z-10 py-1">
+            <button onclick="downloadApplications('xlsx')" class="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700">📊 Excel (.xlsx)</button>
+            <button onclick="downloadApplications('pdf')" class="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700">📄 PDF (.pdf)</button>
+            <button onclick="downloadApplications('docx')" class="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700">📝 Word (.docx)</button>
+            <button onclick="downloadApplications('csv')" class="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700">🗂️ CSV (.csv)</button>
+            <button onclick="downloadApplications('txt')" class="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700">📃 Text (.txt)</button>
+          </div>
         </div>
       </div>
     </div>
@@ -73,6 +82,13 @@
     state.page = 1;
     loadList();
   });
+
+  // Download applications report — uses the currently-selected status filter
+  window.downloadApplications = (fmt) => {
+    const status = document.getElementById('f-status').value;
+    const params = status ? `status_filter=${status}` : '';
+    window.downloadReport('applications', fmt, params);
+  };
 
   async function loadList() {
     const tbody = document.getElementById('app-tbody');

@@ -87,8 +87,9 @@
 
   window.gotoPage = (n) => { if (n >= 1) { state.page = n; loadList(); } };
 
+  // Expose hoisted functions to window so onclick="..." attributes can call them.
+  // (openSchemeForm is assigned later as an arrow function.)
   window.showScheme = showScheme;
-  window.openSchemeForm = openSchemeForm;
   window.deleteScheme = deleteScheme;
 
   await loadList();

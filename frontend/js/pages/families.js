@@ -100,8 +100,9 @@
 
   window.gotoPage = (n) => { if (n >= 1) { state.page = n; loadList(); } };
 
+  // Expose hoisted functions to window so onclick="..." attributes can call them.
+  // (openFamilyForm is assigned later as an arrow function.)
   window.showFamily = showFamily;
-  window.openFamilyForm = openFamilyForm;
   window.deleteFamily = deleteFamily;
 
   await loadList();

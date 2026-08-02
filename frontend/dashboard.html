@@ -4,16 +4,33 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Village Setu · Dashboard</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://cdn.tailwindcss.com" crossorigin />
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+  <link rel="dns-prefetch" href="https://cdn.tailwindcss.com" />
+  <link rel="dns-prefetch" href="https://cdn.jsdelivr.net" />
+  <style>
+    /* Inline critical CSS to prevent FOUC before Tailwind CDN loads */
+    html,body{margin:0;padding:0;background:#f8fafc;color:#1e293b;font-family:system-ui,-apple-system,'Segoe UI',sans-serif}
+    html.dark,body.dark{background:#0f172a;color:#e2e8f0}
+    #app{min-height:100vh}
+    .spinner{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:inherit;z-index:9999}
+    .spinner::after{content:'';width:40px;height:40px;border:3px solid #cbd5e1;border-top-color:#4f46e5;border-radius:50%;animation:spin 0.8s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+  </style>
   <script>
-    tailwind.config = { darkMode: 'class' };
+    // Apply theme immediately to avoid flash
+    (function(){
+      var t = localStorage.getItem('vs_theme') || 'light';
+      if (t === 'dark') document.documentElement.classList.add('dark');
+    })();
   </script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config = { darkMode: 'class' };</script>
   <link rel="stylesheet" href="/css/app.css" />
 </head>
 <body class="bg-slate-50 dark:bg-slate-900">
-  <div id="app"></div>
+  <div id="app"><div class="spinner"></div></div>
 
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script src="/js/api.js"></script>
   <script src="/js/ui.js"></script>
   <script src="/js/pages/dashboard.js"></script>
