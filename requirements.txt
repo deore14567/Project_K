@@ -1,0 +1,2 @@
+# Root requirements — Vercel uses this to install backend deps.
+-r backend/requirements.txt

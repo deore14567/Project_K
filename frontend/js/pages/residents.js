@@ -1,0 +1,495 @@
+/* Residents page — list + profile view + add/edit modal */
+(async function () {
+  const user = await bootPage('residents', 'Residents', {
+    subtitle: 'Manage resident records',
+    actions: `
+      <button onclick="openResidentForm()" class="inline-flex items-center gap-2 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm rounded-lg">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        Add Resident
+      </button>
+    `,
+  });
+  if (!user) return;
+  const isAdmin = user.role === 'admin';
+  const main = document.getElementById('page-content');
+
+  const editId = getQueryParam('id');
+  if (editId) {
+    return showProfile(parseInt(editId, 10));
+  }
+
+  // --- List view ---
+  const state = {
+    page: 1, per_page: 20, q: getQueryParam('q') || '',
+    village: '', ward: '', category: '', gender: '', sort: 'created_at:desc',
+  };
+
+  main.innerHTML = `
+    <!-- Filters -->
+    <div class="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-700 mb-4">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+        <input id="f-q" type="search" placeholder="Search name, ID, mobile, PAN…" value="${escapeHtml(state.q)}"
+          class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
+        <input id="f-village" type="text" placeholder="Village"
+          class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
+        <select id="f-category" class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+          <option value="">All Categories</option>
+          <option>General</option><option>OBC</option><option>SC</option><option>ST</option><option>EWS</option>
+        </select>
+        <select id="f-gender" class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+          <option value="">All Genders</option>
+          <option>Male</option><option>Female</option><option>Other</option>
+        </select>
+      </div>
+      <div class="mt-3 flex items-center justify-between flex-wrap gap-2">
+        <div class="flex items-center gap-2">
+          <button id="btn-search" class="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm rounded-lg">Search</button>
+          <button id="btn-reset" class="px-4 py-1.5 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-sm rounded-lg">Reset</button>
+          <select id="f-sort" class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white text-sm">
+            <option value="created_at:desc">Newest first</option>
+            <option value="created_at:asc">Oldest first</option>
+            <option value="first_name:asc">Name A→Z</option>
+            <option value="first_name:desc">Name Z→A</option>
+            <option value="age:desc">Age (high→low)</option>
+          </select>
+        </div>
+        <a href="/api/reports/residents.csv" class="text-sm text-indigo-600 dark:text-indigo-400 hover:underline">Export CSV</a>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
+          <thead class="bg-slate-50 dark:bg-slate-700/50">
+            <tr>
+              <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Resident</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Contact</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Village / Ward</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Category</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Age</th>
+              <th class="px-4 py-3 text-right text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="res-tbody" class="divide-y divide-slate-100 dark:divide-slate-700">
+            ${Array(8).fill(skeletonRow(6)).join('')}
+          </tbody>
+        </table>
+      </div>
+      <div id="pagination" class="px-4 py-3 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between text-sm"></div>
+    </div>
+  `;
+
+  document.getElementById('btn-search').addEventListener('click', () => {
+    state.q = document.getElementById('f-q').value.trim();
+    state.village = document.getElementById('f-village').value.trim();
+    state.category = document.getElementById('f-category').value;
+    state.gender = document.getElementById('f-gender').value;
+    state.sort = document.getElementById('f-sort').value;
+    state.page = 1;
+    loadList();
+  });
+  document.getElementById('btn-reset').addEventListener('click', () => {
+    document.getElementById('f-q').value = '';
+    document.getElementById('f-village').value = '';
+    document.getElementById('f-category').value = '';
+    document.getElementById('f-gender').value = '';
+    document.getElementById('f-sort').value = 'created_at:desc';
+    Object.assign(state, { q: '', village: '', category: '', gender: '', sort: 'created_at:desc', page: 1 });
+    loadList();
+  });
+  document.getElementById('f-q').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') document.getElementById('btn-search').click();
+  });
+
+  async function loadList() {
+    const tbody = document.getElementById('res-tbody');
+    tbody.innerHTML = Array(6).fill(skeletonRow(6)).join('');
+    try {
+      const res = await api.get('/residents', {
+        page: state.page, per_page: state.per_page,
+        q: state.q, village: state.village,
+        category: state.category, gender: state.gender,
+        sort: state.sort,
+      });
+      if (!res.items.length) {
+        tbody.innerHTML = `<tr><td colspan="6" class="px-4 py-10 text-center text-slate-500">No residents found.</td></tr>`;
+      } else {
+        tbody.innerHTML = res.items.map(r => `
+          <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/50 cursor-pointer" onclick="showProfile(${r.id})">
+            <td class="px-4 py-3">
+              <div class="font-medium text-slate-800 dark:text-white">${escapeHtml(r.first_name)} ${escapeHtml(r.last_name || '')}</div>
+              <div class="text-xs text-slate-500 dark:text-slate-400">${escapeHtml(r.resident_id)}</div>
+            </td>
+            <td class="px-4 py-3">
+              <div class="text-sm text-slate-700 dark:text-slate-300">${escapeHtml(r.mobile_number || '—')}</div>
+              <div class="text-xs text-slate-500 dark:text-slate-400">${escapeHtml(r.email || '')}</div>
+            </td>
+            <td class="px-4 py-3">
+              <div class="text-sm text-slate-700 dark:text-slate-300">${escapeHtml(r.village || '—')}</div>
+              <div class="text-xs text-slate-500 dark:text-slate-400">Ward ${escapeHtml(r.ward_number || '—')}</div>
+            </td>
+            <td class="px-4 py-3"><span class="px-2 py-0.5 text-xs rounded-full bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300">${escapeHtml(r.category || '—')}</span></td>
+            <td class="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">${r.age ?? '—'}</td>
+            <td class="px-4 py-3 text-right" onclick="event.stopPropagation()">
+              <button onclick="showProfile(${r.id})" class="text-indigo-600 hover:underline text-sm mr-2">View</button>
+              <button onclick="openResidentForm(${r.id})" class="text-slate-600 dark:text-slate-300 hover:underline text-sm mr-2">Edit</button>
+              ${isAdmin ? `<button onclick="deleteResident(${r.id})" class="text-rose-600 hover:underline text-sm">Delete</button>` : ''}
+            </td>
+          </tr>
+        `).join('');
+      }
+      renderPagination(res);
+    } catch (e) {
+      tbody.innerHTML = `<tr><td colspan="6" class="px-4 py-10 text-center text-rose-600">${escapeHtml(e.message)}</td></tr>`;
+    }
+  }
+
+  function renderPagination(res) {
+    const p = document.getElementById('pagination');
+    const from = res.total === 0 ? 0 : (res.page - 1) * res.per_page + 1;
+    const to = Math.min(res.page * res.per_page, res.total);
+    p.innerHTML = `
+      <div class="text-slate-500 dark:text-slate-400">Showing ${from}–${to} of ${res.total}</div>
+      <div class="flex items-center gap-2">
+        <button ${res.page <= 1 ? 'disabled' : ''} onclick="gotoPage(${res.page - 1})" class="px-3 py-1 rounded border border-slate-300 dark:border-slate-600 text-sm disabled:opacity-40">Prev</button>
+        <span class="text-slate-600 dark:text-slate-300">Page ${res.page} / ${res.pages}</span>
+        <button ${res.page >= res.pages ? 'disabled' : ''} onclick="gotoPage(${res.page + 1})" class="px-3 py-1 rounded border border-slate-300 dark:border-slate-600 text-sm disabled:opacity-40">Next</button>
+      </div>
+    `;
+  }
+
+  window.gotoPage = (n) => { if (n >= 1) { state.page = n; loadList(); } };
+
+  window.showProfile = showProfile;
+  window.openResidentForm = openResidentForm;
+  window.deleteResident = deleteResident;
+
+  await loadList();
+
+  // --- Profile view ---
+  async function showProfile(id) {
+    document.getElementById('page-content').innerHTML = `
+      <div class="mb-4">
+        <button onclick="history.back()" class="text-sm text-slate-500 hover:text-indigo-600">&larr; Back to list</button>
+      </div>
+      <div id="profile-host" class="space-y-4">
+        <div class="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border border-slate-200 dark:border-slate-700">
+          ${Array(6).fill('<div class="h-4 w-1/2 skeleton rounded mb-3"></div>').join('')}
+        </div>
+      </div>
+    `;
+    try {
+      const r = await api.get(`/residents/${id}`);
+      renderProfile(r);
+    } catch (e) {
+      document.getElementById('profile-host').innerHTML = `<div class="p-6 bg-rose-50 dark:bg-rose-900/30 text-rose-700 dark:text-rose-300 rounded-xl">${escapeHtml(e.message)}</div>`;
+    }
+  }
+
+  function renderProfile(r) {
+    const host = document.getElementById('profile-host');
+    const fullName = `${r.first_name} ${r.middle_name || ''} ${r.last_name || ''}`.trim();
+
+    host.innerHTML = `
+      <!-- Header card -->
+      <div class="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border border-slate-200 dark:border-slate-700 no-print">
+        <div class="flex flex-wrap items-start justify-between gap-4">
+          <div class="flex items-start gap-4">
+            <div class="w-16 h-16 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-2xl font-bold uppercase">${(r.first_name || '?')[0]}</div>
+            <div>
+              <h2 class="text-xl font-bold text-slate-800 dark:text-white">${escapeHtml(fullName)}</h2>
+              <p class="text-sm text-slate-500 dark:text-slate-400">${escapeHtml(r.resident_id)} · ${escapeHtml(r.gender || '—')} · Age ${r.age ?? '—'}</p>
+              <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">${escapeHtml(r.village || '')} ${r.ward_number ? '· Ward ' + escapeHtml(r.ward_number) : ''}</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2 flex-wrap">
+            <button onclick="printProfile()" class="px-3 py-1.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 text-sm rounded-lg">Print</button>
+            <button onclick="openResidentForm(${r.id})" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm rounded-lg">Edit</button>
+            ${isAdmin ? `<button onclick="deleteResident(${r.id})" class="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-sm rounded-lg">Delete</button>` : ''}
+            <a href="/documents.html?resident_id=${r.id}" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm rounded-lg">Documents</a>
+            <a href="/applications.html?resident_id=${r.id}" class="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-sm rounded-lg">Applications</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <!-- Personal -->
+        <div class="bg-white dark:bg-slate-800 rounded-xl p-5 shadow-sm border border-slate-200 dark:border-slate-700">
+          <h3 class="text-sm font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-3">Personal</h3>
+          <dl class="space-y-2 text-sm">
+            ${fieldRow('First Name', r.first_name)}
+            ${fieldRow('Middle Name', r.middle_name)}
+            ${fieldRow('Last Name', r.last_name)}
+            ${fieldRow('Gender', r.gender)}
+            ${fieldRow('DOB', r.dob ? fmtDate(r.dob) : null)}
+            ${fieldRow('Age', r.age)}
+            ${fieldRow('Religion', r.religion)}
+            ${fieldRow('Category', r.category)}
+            ${fieldRow('Caste', r.caste)}
+            ${fieldRow('Occupation', r.occupation)}
+            ${fieldRow('Annual Income', r.annual_income != null ? '₹' + Number(r.annual_income).toLocaleString('en-IN') : null)}
+          </dl>
+        </div>
+
+        <!-- Contact & address -->
+        <div class="bg-white dark:bg-slate-800 rounded-xl p-5 shadow-sm border border-slate-200 dark:border-slate-700">
+          <h3 class="text-sm font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-3">Contact & Address</h3>
+          <dl class="space-y-2 text-sm">
+            ${fieldRow('Mobile', r.mobile_number, true)}
+            ${fieldRow('Alternate', r.alternate_number, true)}
+            ${fieldRow('Email', r.email, true)}
+            ${fieldRow('Address', r.address, true)}
+            ${fieldRow('Village', r.village)}
+            ${fieldRow('Taluka', r.taluka)}
+            ${fieldRow('District', r.district)}
+            ${fieldRow('State', r.state)}
+            ${fieldRow('PIN', r.pin_code, true)}
+            ${fieldRow('Ward', r.ward_number)}
+          </dl>
+        </div>
+
+        <!-- Identity -->
+        <div class="bg-white dark:bg-slate-800 rounded-xl p-5 shadow-sm border border-slate-200 dark:border-slate-700">
+          <h3 class="text-sm font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-3">Identity & Family</h3>
+          <dl class="space-y-2 text-sm">
+            <div class="flex justify-between gap-2">
+              <dt class="text-slate-500 dark:text-slate-400">Aadhaar</dt>
+              <dd class="text-slate-800 dark:text-white font-mono text-right">
+                ${escapeHtml(r.aadhaar_masked || '—')}
+                ${r.aadhaar_masked ? copyButton(r.aadhaar_masked, 'Aadhaar (masked)') : ''}
+                ${r.aadhaar ? `<button onclick="copyToClipboard(${JSON.stringify(r.aadhaar)}, 'Aadhaar')" class="ml-1 text-indigo-600 text-xs">reveal</button>` : ''}
+              </dd>
+            </div>
+            ${fieldRow('PAN', r.pan_number, true)}
+            ${fieldRow('Voter ID', r.voter_id, true)}
+            ${fieldRow('Ration Card', r.ration_card_number, true)}
+            ${fieldRow('Family ID', r.family_id, true)}
+            ${fieldRow('Head of Family', r.is_head_of_family ? 'Yes' : 'No')}
+            ${fieldRow('Remarks', r.remarks)}
+          </dl>
+        </div>
+      </div>
+
+      <!-- Eligibility engine -->
+      <div class="bg-white dark:bg-slate-800 rounded-xl p-5 shadow-sm border border-slate-200 dark:border-slate-700">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-sm font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide">Smart Eligibility</h3>
+          <button onclick="runEligibility(${r.id})" class="text-sm text-indigo-600 hover:underline">Re-check</button>
+        </div>
+        <div id="eligibility-host" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div class="text-sm text-slate-500">Click "Re-check" to evaluate schemes.</div>
+        </div>
+      </div>
+
+      <!-- Print-only detailed view -->
+      <div class="print-only bg-white text-slate-800 p-6">
+        <h1 class="text-2xl font-bold mb-2">${escapeHtml(fullName)}</h1>
+        <p class="text-sm">${escapeHtml(r.resident_id)} · ${escapeHtml(r.village || '')}</p>
+        <hr class="my-4" />
+        <table class="w-full text-sm">
+          <tr><td class="py-1 font-medium w-1/3">Gender</td><td>${escapeHtml(r.gender || '—')}</td></tr>
+          <tr><td class="py-1 font-medium">DOB / Age</td><td>${r.dob ? fmtDate(r.dob) : '—'} (${r.age ?? '—'})</td></tr>
+          <tr><td class="py-1 font-medium">Mobile</td><td>${escapeHtml(r.mobile_number || '—')}</td></tr>
+          <tr><td class="py-1 font-medium">Address</td><td>${escapeHtml(r.address || '—')}, ${escapeHtml(r.village || '')}, ${escapeHtml(r.district || '')} - ${escapeHtml(r.pin_code || '')}</td></tr>
+          <tr><td class="py-1 font-medium">Aadhaar</td><td>${escapeHtml(r.aadhaar_masked || '—')}</td></tr>
+          <tr><td class="py-1 font-medium">PAN</td><td>${escapeHtml(r.pan_number || '—')}</td></tr>
+          <tr><td class="py-1 font-medium">Category</td><td>${escapeHtml(r.category || '—')}</td></tr>
+          <tr><td class="py-1 font-medium">Occupation</td><td>${escapeHtml(r.occupation || '—')}</td></tr>
+          <tr><td class="py-1 font-medium">Annual Income</td><td>${r.annual_income != null ? '₹' + Number(r.annual_income).toLocaleString('en-IN') : '—'}</td></tr>
+        </table>
+        <p class="text-xs text-slate-500 mt-6">Generated on ${new Date().toLocaleString('en-IN')}</p>
+      </div>
+    `;
+
+    // Auto-run eligibility
+    runEligibility(r.id);
+
+    window.printProfile = () => printContent(document.querySelector('.print-only').innerHTML, `Resident ${fullName}`);
+  }
+
+  function fieldRow(label, value, withCopy = false) {
+    const v = value == null || value === '' ? '—' : value;
+    return `
+      <div class="flex justify-between gap-2">
+        <dt class="text-slate-500 dark:text-slate-400">${escapeHtml(label)}</dt>
+        <dd class="text-slate-800 dark:text-white font-medium text-right break-all">
+          ${escapeHtml(String(v))}
+          ${withCopy && value ? copyButton(String(value), label) : ''}
+        </dd>
+      </div>
+    `;
+  }
+
+  window.runEligibility = async (id) => {
+    const host = document.getElementById('eligibility-host');
+    if (!host) return;
+    host.innerHTML = Array(3).fill('<div class="h-24 skeleton rounded"></div>').join('');
+    try {
+      const res = await api.get(`/residents/${id}/eligibility`);
+      if (!res.items.length) {
+        host.innerHTML = `<div class="text-sm text-slate-500 col-span-full">No active schemes configured.</div>`;
+        return;
+      }
+      host.innerHTML = res.items.map(it => `
+        <div class="border border-slate-200 dark:border-slate-700 rounded-lg p-3">
+          <div class="flex items-center justify-between gap-2 mb-2">
+            <a href="/schemes.html?id=${it.scheme_id}" class="text-sm font-medium text-slate-800 dark:text-white hover:underline">${escapeHtml(it.scheme_name)}</a>
+            ${eligibilityBadge(it.status)}
+          </div>
+          <ul class="text-xs text-slate-600 dark:text-slate-400 space-y-1 list-disc list-inside">
+            ${it.reasons.map(r => `<li>${escapeHtml(r)}</li>`).join('')}
+          </ul>
+        </div>
+      `).join('');
+    } catch (e) {
+      host.innerHTML = `<div class="text-sm text-rose-600 col-span-full">${escapeHtml(e.message)}</div>`;
+    }
+  };
+
+  // --- Add / Edit form ---
+  window.openResidentForm = (id = null) => {
+    const isEdit = !!id;
+    openModal(`
+      <div class="p-5 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between sticky top-0 bg-white dark:bg-slate-800 z-10">
+        <h3 class="font-semibold text-slate-800 dark:text-white">${isEdit ? 'Edit' : 'Add'} Resident</h3>
+        <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 text-xl">&times;</button>
+      </div>
+      <form id="resident-form" class="p-5 space-y-4">
+        ${residentFormFields()}
+        <div class="flex justify-end gap-2 pt-4 border-t border-slate-200 dark:border-slate-700">
+          <button type="button" onclick="closeModal()" class="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg">Cancel</button>
+          <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg">${isEdit ? 'Save Changes' : 'Create Resident'}</button>
+        </div>
+      </form>
+    `);
+
+    const form = document.getElementById('resident-form');
+    if (isEdit) {
+      api.get(`/residents/${id}`).then(r => {
+        Object.entries(r).forEach(([k, v]) => {
+          const el = form.querySelector(`[name="${k}"]`);
+          if (el && v != null) {
+            if (el.type === 'date' && v) el.value = v.substring(0, 10);
+            else el.value = v;
+          }
+        });
+      }).catch(e => toast(e.message, 'error'));
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fd = new FormData(form);
+      const body = {};
+      fd.forEach((v, k) => {
+        if (v !== '' && v != null) {
+          if (['annual_income', 'age'].includes(k)) body[k] = parseFloat(v);
+          else if (k === 'is_head_of_family') body[k] = v === 'on' || v === true;
+          else body[k] = v;
+        }
+      });
+      try {
+        if (isEdit) {
+          await api.put(`/residents/${id}`, body);
+          toast('Resident updated', 'success');
+          closeModal();
+          showProfile(id);
+        } else {
+          const created = await api.post('/residents', body);
+          toast('Resident added', 'success');
+          closeModal();
+          showProfile(created.id);
+        }
+      } catch (err) {
+        toast(err.message, 'error');
+      }
+    });
+  };
+
+  function residentFormFields() {
+    return `
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+        ${input('first_name', 'First Name', 'text', true)}
+        ${input('middle_name', 'Middle Name')}
+        ${input('last_name', 'Last Name')}
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+        ${select('gender', 'Gender', ['Male', 'Female', 'Other'])}
+        ${input('dob', 'DOB', 'date')}
+        ${input('mobile_number', 'Mobile', 'tel', false, '10-digit Indian mobile')}
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+        ${input('alternate_number', 'Alternate No', 'tel')}
+        ${input('email', 'Email', 'email')}
+        ${input('pin_code', 'PIN', 'text', false, '6 digits')}
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        ${input('address', 'Address', 'text')}
+        ${input('village', 'Village')}
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+        ${input('taluka', 'Taluka')}
+        ${input('district', 'District')}
+        ${input('state', 'State')}
+        ${input('ward_number', 'Ward')}
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+        ${input('aadhaar', 'Aadhaar', 'text', false, '12 digits')}
+        ${input('pan_number', 'PAN', 'text', false, 'ABCDE1234F')}
+        ${input('voter_id', 'Voter ID')}
+        ${input('ration_card_number', 'Ration Card')}
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+        ${input('occupation', 'Occupation')}
+        ${input('annual_income', 'Annual Income (₹)', 'number')}
+        ${input('religion', 'Religion')}
+        ${select('category', 'Category', ['General', 'OBC', 'SC', 'ST', 'EWS'])}
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+        ${input('caste', 'Caste')}
+        ${input('family_id', 'Family ID')}
+        <div class="flex items-end">
+          <label class="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+            <input type="checkbox" name="is_head_of_family" class="rounded" /> Head of Family
+          </label>
+        </div>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Remarks</label>
+        <textarea name="remarks" rows="2" class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white text-sm"></textarea>
+      </div>
+    `;
+  }
+
+  function input(name, label, type = 'text', required = false, placeholder = '') {
+    return `
+      <div>
+        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">${label}${required ? ' <span class="text-rose-500">*</span>' : ''}</label>
+        <input name="${name}" type="${type}" ${required ? 'required' : ''} placeholder="${placeholder}"
+          class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
+      </div>
+    `;
+  }
+  function select(name, label, options) {
+    return `
+      <div>
+        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">${label}</label>
+        <select name="${name}" class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+          <option value="">— Select —</option>
+          ${options.map(o => `<option value="${o}">${o}</option>`).join('')}
+        </select>
+      </div>
+    `;
+  }
+
+  // --- Delete ---
+  async function deleteResident(id) {
+    if (!confirm('Delete this resident? This will also delete their documents and applications.')) return;
+    try {
+      await api.del(`/residents/${id}`);
+      toast('Resident deleted', 'success');
+      if (getQueryParam('id')) window.location.href = '/residents.html';
+      else loadList();
+    } catch (e) { toast(e.message, 'error'); }
+  }
+})();

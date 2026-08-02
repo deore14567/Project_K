@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Village Setu — Redirecting</title>
+  <script>
+    // Redirect to dashboard if logged in, else to login.
+    try {
+      const token = localStorage.getItem('vs_token');
+      const user  = JSON.parse(localStorage.getItem('vs_user') || 'null');
+      if (token && user) window.location.replace('/dashboard.html');
+      else window.location.replace('/login.html');
+    } catch (e) {
+      window.location.replace('/login.html');
+    }
+  </script>
+  <style>body{font-family:sans-serif;text-align:center;padding:3rem;background:#f8fafc;color:#475569}</style>
+</head>
+<body>
+  <p>Redirecting…</p>
+  <p><a href="/login.html">Click here if you are not redirected.</a></p>
+</body>
+</html>
