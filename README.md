@@ -27,9 +27,9 @@ A production-ready, **online-only** web application for managing village residen
 
 ## 🧱 Tech Stack
 
-- **Backend:** Python 3.12+, FastAPI, SQLAlchemy 2.x, Pydantic v2, PyJWT, bcrypt, cryptography (Fernet)
+- **Backend:** Python 3.12+, FastAPI, SQLAlchemy 2.x, Pydantic v2, PyJWT, bcrypt, cryptography (Fernet), psycopg2
 - **Frontend:** HTML5, Tailwind CSS (via CDN), vanilla JavaScript (no build step)
-- **Database:** Cloud MySQL-compatible (TiDB Serverless / Aiven / Railway / Neon-MySQL)
+- **Database:** Cloud PostgreSQL (Aiven / Neon / Supabase / Railway)
 - **Deployment:** GitHub → Vercel (one-click)
 
 ---
@@ -124,39 +124,42 @@ API docs: <http://localhost:8000/api/docs>
 
 ## ☁️ Cloud Database Setup
 
-Pick **one** of the following MySQL-compatible cloud providers. TiDB Serverless is recommended (free tier + native Vercel integration).
+Pick **one** of the following PostgreSQL cloud providers. **Aiven for PostgreSQL** is what we tested with — the free tier works great with Vercel.
 
-### Option A — TiDB Serverless (recommended)
+### Option A — Aiven for PostgreSQL (recommended — already set up)
 
-1. Sign up at <https://tidbcloud.com>.
-2. Create a **Serverless** cluster (free tier is fine).
-3. In **Connect**, choose **SQL** → **SQLAlchemy (PyMySQL)**.
-4. Copy the connection string; it looks like:
+1. Sign in at <https://console.aiven.io/>.
+2. Open your service (e.g. `pg-18bebb6d-...`).
+3. Go to the **Overview** tab → click **psql** to reveal the connection string. It looks like:
    ```
-   mysql+pymysql://<prefix>.<user>:<password>@gateway01.<region>.prod.aws.tidbcloud.com:4000/<db>?ssl_ca=/etc/ssl/cert.pem&ssl_verify_cert=true
+   postgres://avnadmin:<password>@pg-18bebb6d-andimandisandi14567-1615.h.aivencloud.com:27478/defaultdb?sslmode=require
    ```
-5. Set this as your `DATABASE_URL` env var.
-
-> On Vercel, the system CA bundle path differs. Set `ssl_ca=%2Fetc%2Fssl%2Fcert.pem` (URL-encoded) and add `ssl_verify_cert=true`. If you hit SSL errors on Vercel, switch the `ssl_ca` value to `/etc/ssl/certs/ca-certificates.crt` (Debian path used by Vercel's runtime).
-
-### Option B — Aiven MySQL
-
-1. Sign up at <https://aiven.io>.
-2. Create a MySQL service (free tier available).
-3. Download the CA certificate and set the connection string:
+4. **Convert the scheme** from `postgres://` to `postgresql+psycopg2://` so SQLAlchemy uses the right driver. Final value for `DATABASE_URL`:
    ```
-   mysql+pymysql://<user>:<password>@<host>:<port>/<db>?ssl_ca=/path/to/ca.pem
+   postgresql+psycopg2://avnadmin:<password>@pg-18bebb6d-andimandisandi14567-1615.h.aivencloud.com:27478/defaultdb?sslmode=require
    ```
+5. Set this as the `DATABASE_URL` environment variable (in `.env` locally, or in Vercel project settings).
 
-### Option C — Railway MySQL
+> Aiven requires TLS — `sslmode=require` in the query string handles that. No CA cert download needed.
+
+### Option B — Neon Postgres
+
+1. Sign up at <https://neon.tech>.
+2. Create a project → copy the connection string.
+3. Prefix it with `postgresql+psycopg2://` instead of `postgres://`.
+4. Use it as `DATABASE_URL`.
+
+### Option C — Supabase Postgres
+
+1. Sign up at <https://supabase.com>.
+2. Create a project → Project Settings → Database → Connection string (URI).
+3. Prefix it with `postgresql+psycopg2://`.
+
+### Option D — Railway Postgres
 
 1. Sign up at <https://railway.app>.
-2. New project → Provision MySQL.
-3. Use the `MYSQL_URL` (or compose one from the individual vars).
-
-### Option D — Neon (MySQL compatible)
-
-Neon now offers a MySQL-compatible preview. Use the connection string they provide in the dashboard.
+2. New project → Provision PostgreSQL.
+3. Use the `DATABASE_PUBLIC_URL` (or compose one from the individual vars). Prefix with `postgresql+psycopg2://`.
 
 ---
 
@@ -286,7 +289,10 @@ This project is provided as-is for the Village Setu / Cybercafe use case. Modify
 → Ensure `requirements.txt` at the repo root exists (it includes `-r backend/requirements.txt`).
 
 **Database connection error on Vercel cold start**
-→ Double-check the `DATABASE_URL` in Vercel env vars. For TiDB, the `ssl_ca` path on Vercel is `/etc/ssl/certs/ca-certificates.crt`.
+→ Double-check the `DATABASE_URL` in Vercel env vars. The scheme MUST be `postgresql+psycopg2://` (not `postgres://`). Make sure `?sslmode=require` is appended for Aiven.
+
+**`psycopg2` import error on Vercel**
+→ `psycopg2-binary` is in `requirements.txt` and Vercel's Python runtime includes `libpq-dev`. If you still hit an error, switch to `psycopg2-binary==2.9.10` explicitly (already pinned).
 
 **Login fails with "Invalid email or password"**
 → Verify `ADMIN_EMAIL` and `ADMIN_PASSWORD` env vars. The admin user is seeded on first startup; if you changed them after first deploy, you'll need to manually update the user in the DB or delete and re-create the database.
@@ -296,6 +302,9 @@ This project is provided as-is for the Village Setu / Cybercafe use case. Modify
 
 **Document upload fails with 413**
 → File exceeds `MAX_UPLOAD_MB` (default 5 MB). Either upload a smaller file or raise the limit (also raise Vercel's request body limit if needed).
+
+**Aiven connection drops after ~30 minutes of idle**
+→ Already handled — `pool_recycle=1800` recycles connections before Aiven drops them. On Vercel (serverless), `NullPool` is used automatically so this is a non-issue.
 
 ---
 

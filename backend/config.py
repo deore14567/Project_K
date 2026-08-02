@@ -17,10 +17,12 @@ class Settings:
     """Centralized application settings sourced from environment variables."""
 
     # --- Database -----------------------------------------------------------
-    # Example: mysql+pymysql://user:pass@host:3306/dbname?ssl_ca=...
+    # PostgreSQL (Aiven / Neon / Supabase / Railway).
+    # Example:
+    #   postgresql+psycopg2://avnadmin:password@host:port/defaultdb?sslmode=require
     DATABASE_URL: str = os.getenv(
         "DATABASE_URL",
-        "mysql+pymysql://root:root@localhost:3306/village_setu",
+        "postgresql+psycopg2://postgres:postgres@localhost:5432/village_setu",
     )
 
     # --- Auth / JWT ---------------------------------------------------------
