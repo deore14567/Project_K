@@ -4,12 +4,24 @@
  *
  * The card is ID-1 size (85.6mm × 54mm) for print.
  * For preview, the card is scaled with CSS transform.
+ *
+ * IMPORTANT: The API returns separate fields (first_name, middle_name,
+ * last_name, mobile_number). We combine them into display values here.
  */
+
+/**
+ * Combine farmer name from separate API fields.
+ */
+function getFarmerName(farmer) {
+  const parts = [farmer.first_name, farmer.middle_name, farmer.last_name]
+    .filter(p => p && p.trim());
+  return parts.join(' ').trim() || '—';
+}
 
 /**
  * Returns the CSS for the card. Include in <head> or <style>.
  */
-function cardStyles(scale = 1) {
+function cardStyles() {
   return `
     <style>
       .farmer-card {
@@ -17,7 +29,7 @@ function cardStyles(scale = 1) {
         height: 54mm;
         border: 2.5px solid #16a34a;
         border-radius: 10px;
-        padding: 3mm 4mm;
+        padding: 4mm 5mm;
         box-sizing: border-box;
         background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%);
         position: relative;
@@ -37,13 +49,13 @@ function cardStyles(scale = 1) {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        height: 11mm;
-        margin-bottom: 1mm;
+        height: 12mm;
+        margin-bottom: 1.5mm;
         margin-top: 1mm;
       }
       .card-logo {
-        height: 9mm;
-        max-width: 15mm;
+        height: 10mm;
+        max-width: 16mm;
         object-fit: contain;
       }
       .card-agristack {
@@ -60,34 +72,29 @@ function cardStyles(scale = 1) {
       .card-agristack-text {
         color: #16a34a;
         font-weight: 700;
-        font-size: 8pt;
+        font-size: 9pt;
         line-height: 1;
       }
       .card-agristack-sub {
         color: #15803d;
-        font-size: 6pt;
+        font-size: 7pt;
         line-height: 1;
       }
       .card-title {
         text-align: center;
         color: #15803d;
         font-weight: 700;
-        font-size: 9pt;
-        margin-bottom: 1.5mm;
+        font-size: 10pt;
+        margin-bottom: 2mm;
         border-bottom: 1px solid #86efac;
         padding-bottom: 1mm;
-      }
-      .card-body {
-        display: flex;
-        flex: 1;
-        gap: 2mm;
       }
       .card-fields {
         flex: 1;
         display: flex;
         flex-direction: column;
         justify-content: center;
-        gap: 1mm;
+        gap: 1.5mm;
       }
       .card-field {
         display: flex;
@@ -97,38 +104,20 @@ function cardStyles(scale = 1) {
       .card-field-label {
         color: #6b7280;
         font-weight: 600;
-        font-size: 6.5pt;
-        min-width: 22mm;
+        font-size: 8pt;
+        min-width: 28mm;
         white-space: nowrap;
       }
       .card-field-value {
         color: #1f2937;
         font-weight: 700;
-        font-size: 8pt;
+        font-size: 9pt;
         word-break: break-all;
+        flex: 1;
       }
       .card-field-name .card-field-value {
-        font-size: 9pt;
+        font-size: 10pt;
         color: #111827;
-      }
-      .card-qr {
-        width: 20mm;
-        height: 20mm;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        align-self: center;
-      }
-      .card-qr img, .card-qr canvas {
-        width: 20mm !important;
-        height: 20mm !important;
-      }
-      .card-footer {
-        text-align: center;
-        font-size: 5.5pt;
-        color: #16a34a;
-        font-weight: 600;
-        margin-top: 0.5mm;
       }
 
       /* Back side */
@@ -136,8 +125,8 @@ function cardStyles(scale = 1) {
         text-align: center;
         color: #15803d;
         font-weight: 700;
-        font-size: 9pt;
-        margin-bottom: 2mm;
+        font-size: 10pt;
+        margin-bottom: 2.5mm;
         border-bottom: 1px solid #86efac;
         padding-bottom: 1mm;
       }
@@ -146,7 +135,7 @@ function cardStyles(scale = 1) {
         display: flex;
         flex-direction: column;
         justify-content: center;
-        gap: 1.5mm;
+        gap: 2mm;
       }
       .card-back-field {
         display: flex;
@@ -156,26 +145,14 @@ function cardStyles(scale = 1) {
       .card-back-label {
         color: #6b7280;
         font-weight: 600;
-        font-size: 7pt;
-        min-width: 18mm;
+        font-size: 8pt;
+        min-width: 20mm;
       }
       .card-back-value {
         color: #1f2937;
         font-weight: 700;
-        font-size: 8pt;
-      }
-
-      /* Preview scaling */
-      .card-preview-container {
-        display: flex;
-        gap: 16px;
-        flex-wrap: wrap;
-        justify-content: center;
-      }
-      .card-preview-wrapper {
-        transform: scale(2);
-        transform-origin: top left;
-        margin: 0 90px 90px 0;
+        font-size: 9pt;
+        flex: 1;
       }
 
       /* Print layout */
@@ -208,49 +185,14 @@ function cardStyles(scale = 1) {
 }
 
 /**
- * Generates QR code data URL for a farmer.
- * Uses the qrcodejs library if available, otherwise returns empty.
- */
-function generateQRDataUrl(farmer) {
-  try {
-    const qrData = [
-      `Name: ${farmer.name || ''}`,
-      `Farmer ID: ${farmer.farmer_id || ''}`,
-      `Aadhaar: ${farmer.aadhaar_masked || ''}`,
-      `गट: ${farmer.gat_number || ''}`,
-      `Mobile: ${farmer.mobile || ''}`,
-      `Village: ${farmer.village || ''}`,
-    ].join('\n');
-
-    // Use a temporary div to generate QR
-    const tmp = document.createElement('div');
-    new QRCode(tmp, {
-      text: qrData,
-      width: 200,
-      height: 200,
-      colorDark: '#000000',
-      colorLight: '#ffffff',
-      correctLevel: QRCode.CorrectLevel.M,
-    });
-    const canvas = tmp.querySelector('canvas');
-    const img = tmp.querySelector('img');
-    if (canvas) return canvas.toDataURL('image/png');
-    if (img) return img.src;
-    return '';
-  } catch (e) {
-    return '';
-  }
-}
-
-/**
  * Returns HTML for the front side of the card.
+ * QR code removed per user request.
  */
-function cardFrontHTML(farmer, qrDataUrl) {
+function cardFrontHTML(farmer) {
+  const name = getFarmerName(farmer);
   const aadhaarMasked = farmer.aadhaar_masked ||
     (farmer.aadhaar ? 'XXXX XXXX ' + farmer.aadhaar.slice(-4) : '—');
-  const qrImg = qrDataUrl
-    ? `<img src="${qrDataUrl}" alt="QR" />`
-    : '<div style="font-size:6pt;color:#999;text-align:center;">QR</div>';
+  const mobile = farmer.mobile_number || farmer.mobile || '—';
 
   return `
     <div class="farmer-card card-front">
@@ -264,40 +206,38 @@ function cardFrontHTML(farmer, qrDataUrl) {
         <img src="/assets/card-logo-right.png" class="card-logo" onerror="this.style.display='none'" />
       </div>
       <div class="card-title">किसान परिचय पत्र / Farmer ID Card</div>
-      <div class="card-body">
-        <div class="card-fields">
-          <div class="card-field card-field-name">
-            <span class="card-field-label">नाव / Name:</span>
-            <span class="card-field-value">${escapeHtml(farmer.name || '—')}</span>
-          </div>
-          <div class="card-field">
-            <span class="card-field-label">आधार / Aadhaar:</span>
-            <span class="card-field-value">${escapeHtml(aadhaarMasked)}</span>
-          </div>
-          <div class="card-field">
-            <span class="card-field-label">शेतकरी आयडी / Farmer ID:</span>
-            <span class="card-field-value">${escapeHtml(farmer.farmer_id || '—')}</span>
-          </div>
-          <div class="card-field">
-            <span class="card-field-label">गट नंबर:</span>
-            <span class="card-field-value">${escapeHtml(farmer.gat_number || '—')}</span>
-          </div>
-          <div class="card-field">
-            <span class="card-field-label">मोबाइल / Mobile:</span>
-            <span class="card-field-value">${escapeHtml(farmer.mobile || '—')}</span>
-          </div>
+      <div class="card-fields">
+        <div class="card-field card-field-name">
+          <span class="card-field-label">नाव / Name:</span>
+          <span class="card-field-value">${escapeHtml(name)}</span>
         </div>
-        <div class="card-qr">${qrImg}</div>
+        <div class="card-field">
+          <span class="card-field-label">आधार / Aadhaar:</span>
+          <span class="card-field-value">${escapeHtml(aadhaarMasked)}</span>
+        </div>
+        <div class="card-field">
+          <span class="card-field-label">शेतकरी आयडी / Farmer ID:</span>
+          <span class="card-field-value">${escapeHtml(farmer.farmer_id || '—')}</span>
+        </div>
+        <div class="card-field">
+          <span class="card-field-label">गट नंबर:</span>
+          <span class="card-field-value">${escapeHtml(farmer.gat_number || '—')}</span>
+        </div>
+        <div class="card-field">
+          <span class="card-field-label">मोबाइल / Mobile:</span>
+          <span class="card-field-value">${escapeHtml(mobile)}</span>
+        </div>
       </div>
-      <div class="card-footer">आशापुरी कॉम्प्युटर सर्विस कर्ले 💻</div>
     </div>
   `;
 }
 
 /**
  * Returns HTML for the back side of the card.
+ * Labels in Marathi only. No footer.
  */
 function cardBackHTML(farmer) {
+  const name = getFarmerName(farmer);
   const address = [farmer.address, farmer.village, farmer.pin_code]
     .filter(Boolean).join(', ');
 
@@ -306,23 +246,22 @@ function cardBackHTML(farmer) {
       <div class="card-back-title">किसान तपशील / Farmer Details</div>
       <div class="card-back-fields">
         <div class="card-back-field">
-          <span class="card-back-label">नाव / Name:</span>
-          <span class="card-back-value">${escapeHtml(farmer.name || '—')}</span>
+          <span class="card-back-label">नाव:</span>
+          <span class="card-back-value">${escapeHtml(name)}</span>
         </div>
         <div class="card-back-field">
-          <span class="card-back-label">जन्म तारीख / DOB:</span>
+          <span class="card-back-label">जन्म तारीख:</span>
           <span class="card-back-value">${escapeHtml(farmer.dob || '—')}</span>
         </div>
         <div class="card-back-field">
-          <span class="card-back-label">लिंग / Gender:</span>
+          <span class="card-back-label">लिंग:</span>
           <span class="card-back-value">${escapeHtml(farmer.gender || '—')}</span>
         </div>
         <div class="card-back-field">
-          <span class="card-back-label">पत्ता / Address:</span>
+          <span class="card-back-label">पत्ता:</span>
           <span class="card-back-value">${escapeHtml(address || '—')}</span>
         </div>
       </div>
-      <div class="card-footer">आशापुरी कॉम्प्युटर सर्विस कर्ले 💻</div>
     </div>
   `;
 }
@@ -333,12 +272,6 @@ function cardBackHTML(farmer) {
  * @param {boolean} isBulk - if true, 3-per-page layout; if false, single card
  */
 function printFarmerCards(farmers, isBulk) {
-  // Pre-generate QR codes for all farmers
-  const farmersWithQR = farmers.map(f => ({
-    ...f,
-    _qr: generateQRDataUrl(f),
-  }));
-
   const w = window.open('', '_blank', 'width=900,height=700');
   if (!w) { toast('Pop-up blocked. Please allow pop-ups.', 'error'); return; }
 
@@ -346,9 +279,9 @@ function printFarmerCards(farmers, isBulk) {
   if (isBulk) {
     // 3 farmers per page: front row + back row
     const pages = [];
-    for (let i = 0; i < farmersWithQR.length; i += 3) {
-      const chunk = farmersWithQR.slice(i, i + 3);
-      const frontRow = chunk.map(f => cardFrontHTML(f, f._qr)).join('');
+    for (let i = 0; i < farmers.length; i += 3) {
+      const chunk = farmers.slice(i, i + 3);
+      const frontRow = chunk.map(f => cardFrontHTML(f)).join('');
       const backRow = chunk.map(f => cardBackHTML(f)).join('');
       pages.push(`
         <div class="print-bulk-row">${frontRow}</div>
@@ -360,10 +293,10 @@ function printFarmerCards(farmers, isBulk) {
     ).join('');
   } else {
     // Single farmer: front + back stacked
-    const f = farmersWithQR[0];
+    const f = farmers[0];
     bodyContent = `
       <div class="print-single">
-        ${cardFrontHTML(f, f._qr)}
+        ${cardFrontHTML(f)}
         ${cardBackHTML(f)}
       </div>
     `;
@@ -393,7 +326,7 @@ function printFarmerCards(farmers, isBulk) {
 }
 
 /**
- * Captures a card preview element as JPG using html2canvas.
+ * Captures a card element as JPG using html2canvas.
  * @param {HTMLElement} element - the card element to capture
  * @param {string} filename - download filename
  */
@@ -426,6 +359,6 @@ async function captureCardAsJPG(element, filename) {
 window.cardStyles = cardStyles;
 window.cardFrontHTML = cardFrontHTML;
 window.cardBackHTML = cardBackHTML;
-window.generateQRDataUrl = generateQRDataUrl;
+window.getFarmerName = getFarmerName;
 window.printFarmerCards = printFarmerCards;
 window.captureCardAsJPG = captureCardAsJPG;

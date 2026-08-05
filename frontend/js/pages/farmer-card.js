@@ -185,11 +185,10 @@
     try {
       const farmer = await api.get(`/residents/${id}`);
       state.previewFarmer = farmer;
-      const qr = generateQRDataUrl(farmer);
       // Render front + back side by side, scaled down for preview
       previewEl.innerHTML = `
         <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;transform:scale(0.85);transform-origin:center;">
-          <div id="preview-card-front">${cardFrontHTML(farmer, qr)}</div>
+          <div id="preview-card-front">${cardFrontHTML(farmer)}</div>
           <div id="preview-card-back">${cardBackHTML(farmer)}</div>
         </div>
       `;
@@ -217,11 +216,10 @@
   window.downloadSingleJPG = async (id) => {
     try {
       const farmer = await api.get(`/residents/${id}`);
-      const qr = generateQRDataUrl(farmer);
       // Create a temporary off-screen container with the card
       const tmp = document.createElement('div');
       tmp.style.cssText = 'position:fixed;left:-9999px;top:0;';
-      tmp.innerHTML = cardStyles() + cardFrontHTML(farmer, qr);
+      tmp.innerHTML = cardStyles() + cardFrontHTML(farmer);
       document.body.appendChild(tmp);
       const cardEl = tmp.querySelector('.farmer-card');
       await captureCardAsJPG(cardEl, `farmer_card_${id}.jpg`);
