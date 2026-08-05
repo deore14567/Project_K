@@ -67,6 +67,35 @@ def init_db() -> None:
     # Import models so SQLAlchemy registers them on Base.metadata.
     from . import models  # noqa: F401
     Base.metadata.create_all(bind=engine)
+    _auto_migrate(engine)
+
+
+def _auto_migrate(eng) -> None:
+    """Add columns that exist in the ORM but are missing in the DB.
+
+    This is a lightweight auto-migration for the 2 new columns added in
+    this release (farmer_id, gat_number). It checks the DB schema and
+    runs ALTER TABLE if the columns don't exist. Safe to run repeatedly.
+    """
+    from sqlalchemy import text, inspect
+    try:
+        inspector = inspect(eng)
+        if not inspector.has_table("residents"):
+            return  # Fresh DB — create_all already made everything
+        existing_cols = {c["name"] for c in inspector.get_columns("residents")}
+        needed = {
+            "farmer_id": "VARCHAR(64)",
+            "gat_number": "VARCHAR(32)",
+        }
+        with eng.begin() as conn:
+            for col_name, col_type in needed.items():
+                if col_name not in existing_cols:
+                    conn.execute(text(
+                        f'ALTER TABLE residents ADD COLUMN "{col_name}" {col_type}'
+                    ))
+    except Exception as e:
+        import logging
+        logging.getLogger("village_setu").warning(f"Auto-migrate skipped: {e}")
 
 
 def seed_admin_if_missing() -> None:

@@ -578,54 +578,27 @@
   function residentFormFields() {
     return `
       <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-        ${input('first_name', 'First Name', 'text', true)}
-        ${input('middle_name', 'Middle Name')}
-        ${input('last_name', 'Last Name')}
+        ${input('first_name', t('first_name'), 'text', true)}
+        ${input('middle_name', t('middle_name'))}
+        ${input('last_name', t('last_name'))}
       </div>
       <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-        ${select('gender', 'Gender', ['Male', 'Female', 'Other'])}
-        ${input('dob', 'DOB', 'date')}
-        ${input('mobile_number', 'Mobile', 'tel', false, '10-digit Indian mobile')}
+        ${select('gender', t('gender'), [t('male'), t('female'), t('other')])}
+        ${input('dob', t('dob'), 'date')}
+        ${input('mobile_number', t('mobile'), 'tel', false, '10-digit mobile')}
       </div>
       <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-        ${input('alternate_number', 'Alternate No', 'tel')}
-        ${input('email', 'Email', 'email')}
-        ${input('pin_code', 'PIN', 'text', false, '6 digits')}
+        ${input('alternate_number', t('alternate_no'), 'tel')}
+        ${input('village', t('village'))}
+        ${input('pin_code', t('pin'), 'text', false, '6 digits')}
       </div>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-        ${input('address', 'Address', 'text')}
-        ${input('village', 'Village')}
+        ${input('address', t('address'), 'text')}
+        ${input('aadhaar', t('aadhaar'), 'text', false, '12 digits')}
       </div>
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
-        ${input('taluka', 'Taluka')}
-        ${input('district', 'District')}
-        ${input('state', 'State')}
-        ${input('ward_number', 'Ward')}
-      </div>
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
-        ${input('aadhaar', 'Aadhaar', 'text', false, '12 digits')}
-        ${input('pan_number', 'PAN', 'text', false, 'ABCDE1234F')}
-        ${input('voter_id', 'Voter ID')}
-        ${input('ration_card_number', 'Ration Card')}
-      </div>
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
-        ${input('occupation', 'Occupation')}
-        ${input('annual_income', 'Annual Income (₹)', 'number')}
-        ${input('religion', 'Religion')}
-        ${select('category', 'Category', ['General', 'OBC', 'SC', 'ST', 'EWS'])}
-      </div>
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-        ${input('caste', 'Caste')}
-        ${input('family_id', 'Family ID')}
-        <div class="flex items-end">
-          <label class="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
-            <input type="checkbox" name="is_head_of_family" class="rounded" /> Head of Family
-          </label>
-        </div>
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Remarks</label>
-        <textarea name="remarks" rows="2" class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white text-sm"></textarea>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        ${input('farmer_id', t('farmer_id'), 'text', false, 'शेतकरी आयडी')}
+        ${input('gat_number', t('gat_number'), 'text', false, 'गट नंबर')}
       </div>
     `;
   }

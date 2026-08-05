@@ -150,33 +150,30 @@ function renderSidebar(activeKey) {
   if (!user) return '';
   const isAdmin = user.role === 'admin';
   const links = [
-    { key: 'dashboard',    href: '/dashboard.html',    label: 'Dashboard',    icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
-    { key: 'residents',    href: '/residents.html',    label: 'Residents',    icon: 'M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 10-8 0 4 4 0 008 0zm6-3a4 4 0 10-8 0 4 4 0 008 0z' },
-    { key: 'families',     href: '/families.html',     label: 'Families',     icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
-    { key: 'documents',    href: '/documents.html',    label: 'Documents',    icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
-    { key: 'schemes',      href: '/schemes.html',      label: 'Schemes',      icon: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4' },
-    { key: 'applications', href: '/applications.html', label: 'Applications', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4' },
-    { key: 'reports',      href: '/reports.html',      label: 'Reports',      icon: 'M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
-    { key: 'audit',        href: '/audit.html',        label: 'Audit Logs',   icon: 'M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z', adminOnly: true },
-    { key: 'users',        href: '/users.html',        label: 'Users',        icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z', adminOnly: true },
+    { key: 'dashboard', href: '/dashboard.html',    label: 'डॅशबोर्ड',     i18n: 'dashboard',  icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
+    { key: 'residents', href: '/residents.html',    label: 'रहिवासी',      i18n: 'residents',  icon: 'M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 10-8 0 4 4 0 008 0zm6-3a4 4 0 10-8 0 4 4 0 008 0z' },
+    { key: 'documents', href: '/documents.html',    label: 'कागदपत्रे',     i18n: 'documents',  icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
+    { key: 'reports',   href: '/reports.html',      label: 'अहवाल',        i18n: 'reports',    icon: 'M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
+    { key: 'audit',     href: '/audit.html',        label: 'ऑडिट लॉग',     i18n: 'audit_logs', icon: 'M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z', adminOnly: true },
+    { key: 'users',     href: '/users.html',        label: 'वापरकर्ते',     i18n: 'users',      icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z', adminOnly: true },
   ];
 
   return `
     <aside id="sidebar" class="fixed lg:static inset-y-0 left-0 z-40 w-64 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 transform -translate-x-full lg:translate-x-0 transition-transform duration-200 flex flex-col">
-      <div class="px-6 py-5 border-b border-slate-200 dark:border-slate-700">
+      <div class="px-4 py-4 border-b border-slate-200 dark:border-slate-700">
         <a href="/dashboard.html" class="flex items-center gap-2">
-          <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold">VS</div>
-          <div>
-            <div class="font-bold text-slate-800 dark:text-white">Village Setu</div>
-            <div class="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wider">Govt Portal</div>
+          <img src="/assets/logo.jpeg" alt="Logo" class="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
+          <div class="min-w-0">
+            <div class="font-bold text-slate-800 dark:text-white text-sm leading-tight">आशापुरी कॉम्प्युटर</div>
+            <div class="font-bold text-slate-800 dark:text-white text-sm leading-tight">सर्विस कर्ले 💻</div>
           </div>
         </a>
       </div>
       <nav class="flex-1 overflow-y-auto py-4 px-3 space-y-1">
         ${links.filter(l => !l.adminOnly || isAdmin).map(l => `
-          <a href="${l.href}" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${l.key === activeKey ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300' : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700/50'}">
+          <a href="${l.href}" data-i18n="${l.i18n}" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${l.key === activeKey ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300' : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700/50'}">
             <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${l.icon}"/></svg>
-            ${l.label}
+            <span>${l.label}</span>
           </a>
         `).join('')}
       </nav>
@@ -212,15 +209,21 @@ window.toggleSidebar = toggleSidebar;
 function renderTopbar(title, opts = {}) {
   const user = window.auth.getUser();
   const isAdmin = user && user.role === 'admin';
+  const lang = window.getLang ? window.getLang() : 'en';
   return `
     <header class="sticky top-0 z-20 bg-white/80 dark:bg-slate-800/80 backdrop-blur border-b border-slate-200 dark:border-slate-700">
       <div class="flex items-center gap-3 px-4 lg:px-6 py-3">
         <button onclick="toggleSidebar()" class="lg:hidden p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300">
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
         </button>
-        <div class="flex-1">
-          <h1 class="text-lg font-bold text-slate-800 dark:text-white">${title}</h1>
-          ${opts.subtitle ? `<p class="text-xs text-slate-500 dark:text-slate-400">${opts.subtitle}</p>` : ''}
+        <div class="flex-1 min-w-0">
+          <h1 class="text-base lg:text-lg font-bold text-slate-800 dark:text-white truncate">${title}</h1>
+          ${opts.subtitle ? `<p class="text-xs text-slate-500 dark:text-slate-400 truncate">${opts.subtitle}</p>` : ''}
+        </div>
+        <!-- Language toggle -->
+        <div class="flex items-center gap-1 bg-slate-100 dark:bg-slate-700 rounded-lg p-0.5">
+          <button onclick="changeLang('en')" class="px-2 py-1 text-xs font-medium rounded ${lang === 'en' ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 dark:text-slate-400'}">EN</button>
+          <button onclick="changeLang('mr')" class="px-2 py-1 text-xs font-medium rounded ${lang === 'mr' ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 dark:text-slate-400'}">मराठी</button>
         </div>
         <button onclick="toggleTheme()" class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300" title="Toggle theme">
           <svg class="w-5 h-5 dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
@@ -232,6 +235,13 @@ function renderTopbar(title, opts = {}) {
   `;
 }
 window.renderTopbar = renderTopbar;
+
+// --- Language change handler ---------------------------------------------
+window.changeLang = (lang) => {
+  window.setLang(lang);
+  // Re-render the current page by reloading — simplest reliable approach
+  window.location.reload();
+};
 
 // --- Page bootstrap ------------------------------------------------------
 async function bootPage(activeKey, title, opts = {}) {
@@ -257,11 +267,13 @@ async function bootPage(activeKey, title, opts = {}) {
             ${opts.placeholder || '<div class="text-slate-500">Loading...</div>'}
           </main>
           <footer class="px-6 py-3 text-center text-xs text-slate-400 border-t border-slate-200 dark:border-slate-700">
-            Village Setu &copy; ${new Date().getFullYear()} &middot; Government Database Management System
+            आशापुरी कॉम्प्युटर सर्विस कर्ले 💻 &copy; ${new Date().getFullYear()}
           </footer>
         </div>
       </div>
     `;
+    // Translate static sidebar/topbar elements
+    if (window.applyTranslations) window.applyTranslations();
   }
   return user;
 }

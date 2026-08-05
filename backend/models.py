@@ -110,6 +110,8 @@ class Resident(Base):
     pan_number = Column(String(20), index=True)
     voter_id = Column(String(32), index=True)
     ration_card_number = Column(String(32), index=True)
+    farmer_id = Column(String(64), index=True)
+    gat_number = Column(String(32), index=True)
 
     # Socio-economic
     occupation = Column(String(255))

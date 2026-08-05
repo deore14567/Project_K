@@ -96,6 +96,8 @@ class ResidentBase(BaseModel):
     pan_number: Optional[str] = None
     voter_id: Optional[str] = None
     ration_card_number: Optional[str] = None
+    farmer_id: Optional[str] = None
+    gat_number: Optional[str] = None
     occupation: Optional[str] = None
     annual_income: Optional[float] = None
     religion: Optional[str] = None
@@ -182,6 +184,8 @@ class ResidentOut(BaseModel):
     pan_number: Optional[str]
     voter_id: Optional[str]
     ration_card_number: Optional[str]
+    farmer_id: Optional[str] = None
+    gat_number: Optional[str] = None
     occupation: Optional[str]
     annual_income: Optional[float]
     religion: Optional[str]
