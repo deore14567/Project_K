@@ -39,10 +39,18 @@ GAP_PX = 60       # gap between front & back in composite image
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 ASSETS_DIR = os.path.join(BASE_DIR, "frontend", "assets")
 
-# Logo paths (user can replace these files)
-LOGO_RIGHT = os.path.join(ASSETS_DIR, "card-logo-right.jpeg")   # top-right
-LOGO_LEFT = os.path.join(ASSETS_DIR, "card-logo-left.jpeg")     # top-left
-LOGO_MIDDLE = os.path.join(ASSETS_DIR, "agristack-logo.png")    # top-middle (horizontal)
+# Logo paths (user can replace these files). We check multiple extensions.
+def _find_logo(name):
+    """Find a logo file by base name, checking .png, .jpg, .jpeg extensions."""
+    for ext in ('.png', '.jpg', '.jpeg'):
+        path = os.path.join(ASSETS_DIR, name + ext)
+        if os.path.isfile(path):
+            return path
+    return None
+
+LOGO_RIGHT = _find_logo("card-logo-right") or os.path.join(ASSETS_DIR, "logo.jpeg")
+LOGO_LEFT = _find_logo("card-logo-left") or os.path.join(ASSETS_DIR, "logo.jpeg")
+LOGO_MIDDLE = _find_logo("agristack-logo") or os.path.join(ASSETS_DIR, "logo.jpeg")
 DEFAULT_LOGO = os.path.join(ASSETS_DIR, "logo.jpeg")
 
 
@@ -464,7 +472,7 @@ def print_farmer_card(resident_id: int,
   .footer {{ position: absolute; bottom: 5px; left: 0; right: 0; text-align: center;
              font-size: 7pt; color: #228B22; }}
   .logos {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }}
-  .logo {{ width: 50px; height: 50px; }}
+  .logo {{ width: 50px; height: 50px; object-fit: contain; }}
   .agristack {{ text-align: center; color: #228B22; font-weight: bold; font-size: 10pt; }}
   .no-print {{ margin: 20px; text-align: center; }}
   @media print {{ .no-print {{ display: none; }} body {{ background: white; padding: 0; }} }}
@@ -477,9 +485,9 @@ def print_farmer_card(resident_id: int,
   <div class="card-container">
     <div class="card">
       <div class="logos">
-        <img src="/assets/card-logo-left.jpeg" class="logo" onerror="this.style.display='none'" />
-        <div class="agristack">AgriStack<br><small>किसान परिचय पत्र</small></div>
-        <img src="/assets/card-logo-right.jpeg" class="logo" onerror="this.style.display='none'" />
+        <img src="/assets/card-logo-left.png" class="logo" onerror="this.src='/assets/logo.jpeg';this.onerror=null;" />
+        <div class="agristack"><img src="/assets/agristack-logo.jpg" style="height:30px;object-fit:contain;" onerror="this.style.display='none';" /><br><small>किसान परिचय पत्र</small></div>
+        <img src="/assets/card-logo-right.png" class="logo" onerror="this.src='/assets/logo.jpeg';this.onerror=null;" />
       </div>
       <h3>किसान परिचय पत्र</h3>
       <div class="field"><span class="label">Farmer Name:</span> <span class="value">{farmer['name']}</span></div>
