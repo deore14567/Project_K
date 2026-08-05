@@ -1,4 +1,4 @@
-/* Farmer Card page — select farmers, generate single/bulk cards */
+/* Farmer Card page — select farmers, preview card, download PDF/JPG */
 (async function () {
   const user = await bootPage('farmer-card', t('farmer_card'), {
     subtitle: t('farmer_card_subtitle'),
@@ -7,9 +7,9 @@
   const main = document.getElementById('page-content');
 
   const state = {
-    page: 1, per_page: 50, q: '',
-    village: '',
+    page: 1, per_page: 50, q: '', village: '',
     selectedIds: new Set(),
+    previewFarmer: null,  // currently previewed farmer object (full data)
   };
 
   main.innerHTML = `
@@ -26,28 +26,44 @@
       </div>
     </div>
 
-    <!-- Search + filters -->
-    <div class="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-700 mb-4">
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <input id="f-q" type="search" placeholder="${t('search_placeholder')}"
-          class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
-        <input id="f-village" type="text" placeholder="${t('village')}"
-          class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
-        <button id="btn-search" class="px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg">${t('search')}</button>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+      <!-- Card Preview -->
+      <div class="bg-white dark:bg-slate-800 rounded-xl p-5 shadow-sm border border-slate-200 dark:border-slate-700">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="font-semibold text-slate-800 dark:text-white">${t('card_preview')}</h3>
+          <div id="preview-actions" class="flex gap-2"></div>
+        </div>
+        <div id="card-preview" class="flex justify-center items-center min-h-[280px] bg-slate-50 dark:bg-slate-900 rounded-lg p-4">
+          <div class="text-slate-400 text-sm text-center">
+            <svg class="w-12 h-12 mx-auto mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 5a2 2 0 012-2h12a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V5zM8 7h8M8 11h8M8 15h5"/></svg>
+            ${t('click_preview_hint')}
+          </div>
+        </div>
       </div>
-    </div>
 
-    <!-- Selection bar -->
-    <div id="selection-bar" class="hidden bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800 rounded-xl p-3 mb-4 flex items-center justify-between gap-3 flex-wrap">
-      <div class="flex items-center gap-3">
-        <span class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-emerald-600 text-white text-xs font-bold" id="selection-count">0</span>
-        <span class="text-sm font-medium text-emerald-700 dark:text-emerald-300"><span id="sel-count-text">0</span> ${t('cards_ready')}</span>
-        <button onclick="clearCardSelection()" class="text-xs text-emerald-600 dark:text-emerald-400 hover:underline ml-2">${t('clear')}</button>
-      </div>
-      <div class="flex items-center gap-2">
-        <button onclick="downloadBulkCards('pdf')" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-sm rounded-lg">
-          📄 ${t('download_pdf')}
-        </button>
+      <!-- Search + Selection -->
+      <div>
+        <div class="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-700 mb-4">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <input id="f-q" type="search" placeholder="${t('search_placeholder')}"
+              class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white text-sm focus:ring-2 focus:ring-emerald-500 outline-none" />
+            <input id="f-village" type="text" placeholder="${t('village')}"
+              class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white text-sm focus:ring-2 focus:ring-emerald-500 outline-none" />
+            <button id="btn-search" class="px-4 py-2 bg-emerald-600 text-white text-sm rounded-lg">${t('search')}</button>
+          </div>
+        </div>
+
+        <!-- Selection bar -->
+        <div id="selection-bar" class="hidden bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800 rounded-xl p-3 flex items-center justify-between gap-3 flex-wrap">
+          <div class="flex items-center gap-3">
+            <span class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-emerald-600 text-white text-xs font-bold" id="selection-count">0</span>
+            <span class="text-sm font-medium text-emerald-700 dark:text-emerald-300"><span id="sel-count-text">0</span> ${t('cards_ready')}</span>
+            <button onclick="clearCardSelection()" class="text-xs text-emerald-600 dark:text-emerald-400 hover:underline ml-2">${t('clear')}</button>
+          </div>
+          <button onclick="downloadBulkCards()" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-sm rounded-lg">
+            📄 ${t('download_selected_pdf')}
+          </button>
+        </div>
       </div>
     </div>
 
@@ -76,30 +92,12 @@
       </div>
       <div id="pagination" class="px-4 py-3 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between text-sm"></div>
     </div>
-
-    <!-- Card preview info -->
-    <div class="mt-6 bg-white dark:bg-slate-800 rounded-xl p-5 shadow-sm border border-slate-200 dark:border-slate-700">
-      <h3 class="font-semibold text-slate-800 dark:text-white mb-3">${t('card_layout')}</h3>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-        <div>
-          <h4 class="font-medium text-emerald-700 dark:text-emerald-400 mb-2">${t('card_front')}:</h4>
-          <ul class="text-slate-600 dark:text-slate-400 space-y-1 list-disc list-inside">
-            <li>${t('farmer_name')} / ${t('aadhaar')} / ${t('farmer_id')}</li>
-            <li>${t('gat_number')} / ${t('mobile')}</li>
-            <li>${t('qr_code')} (${t('optional')})</li>
-            <li>3 ${t('logos')} (${t('top_left')}, ${t('top_middle')}, ${t('top_right')})</li>
-          </ul>
-        </div>
-        <div>
-          <h4 class="font-medium text-emerald-700 dark:text-emerald-400 mb-2">${t('card_back')}:</h4>
-          <ul class="text-slate-600 dark:text-slate-400 space-y-1 list-disc list-inside">
-            <li>${t('name')} / ${t('dob')} / ${t('gender')}</li>
-            <li>${t('address')}</li>
-          </ul>
-        </div>
-      </div>
-    </div>
   `;
+
+  // Inject card styles for preview
+  const styleEl = document.createElement('div');
+  styleEl.innerHTML = cardStyles();
+  document.head.appendChild(styleEl.querySelector('style'));
 
   // --- Search handlers ---
   document.getElementById('btn-search').addEventListener('click', () => {
@@ -126,30 +124,30 @@
         tbody.innerHTML = `<tr><td colspan="7" class="px-4 py-10 text-center text-slate-500">${t('no_residents_found')}</td></tr>`;
       } else {
         tbody.innerHTML = res.items.map(r => `
-          <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/50 ${state.selectedIds.has(r.id) ? 'bg-emerald-50 dark:bg-emerald-900/20' : ''}">
+          <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/50 ${state.selectedIds.has(r.id) ? 'bg-emerald-50 dark:bg-emerald-900/20' : ''}" data-farmer-row="${r.id}">
             <td class="px-4 py-3">
               <input type="checkbox" data-farmer-id="${r.id}" ${state.selectedIds.has(r.id) ? 'checked' : ''}
                 onchange="toggleSelectFarmer(${r.id}, this.checked)"
                 class="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-emerald-600 focus:ring-emerald-500 focus:ring-offset-0 bg-white dark:bg-slate-700 cursor-pointer" />
             </td>
-            <td class="px-4 py-3">
-              <div class="font-medium text-slate-800 dark:text-white">${escapeHtml(r.first_name)} ${escapeHtml(r.last_name || '')}</div>
+            <td class="px-4 py-3 cursor-pointer" onclick="showPreview(${r.id})">
+              <div class="font-medium text-slate-800 dark:text-white hover:text-emerald-600">${escapeHtml(r.first_name)} ${escapeHtml(r.last_name || '')}</div>
               <div class="text-xs text-slate-500 dark:text-slate-400">${escapeHtml(r.resident_id)}</div>
             </td>
             <td class="px-4 py-3 text-sm text-slate-700 dark:text-slate-300 font-mono">${escapeHtml(r.farmer_id || '—')}</td>
             <td class="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">${escapeHtml(r.gat_number || '—')}</td>
             <td class="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">${escapeHtml(r.village || '—')}</td>
             <td class="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">${escapeHtml(r.mobile_number || '—')}</td>
-            <td class="px-4 py-3 text-center">
+            <td class="px-4 py-3">
               <div class="flex items-center justify-center gap-1">
-                <button onclick="downloadSingleCard(${r.id}, 'pdf')" title="${t('download_pdf')}" class="p-1.5 bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 rounded hover:bg-rose-200">
+                <button onclick="showPreview(${r.id})" title="${t('preview')}" class="p-1.5 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded hover:bg-emerald-200">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                </button>
+                <button onclick="downloadSinglePDF(${r.id})" title="${t('download_pdf')}" class="p-1.5 bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 rounded hover:bg-rose-200">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
                 </button>
-                <button onclick="downloadSingleCard(${r.id}, 'jpg')" title="${t('download_jpg')}" class="p-1.5 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded hover:bg-blue-200">
+                <button onclick="downloadSingleJPG(${r.id})" title="${t('download_jpg')}" class="p-1.5 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded hover:bg-blue-200">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                </button>
-                <button onclick="printCard(${r.id})" title="${t('print_card')}" class="p-1.5 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded hover:bg-slate-200">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
                 </button>
               </div>
             </td>
@@ -177,6 +175,82 @@
       </div>
     `;
   }
+
+  // --- Card preview ---
+  window.showPreview = async (id) => {
+    const previewEl = document.getElementById('card-preview');
+    const actionsEl = document.getElementById('preview-actions');
+    previewEl.innerHTML = '<div class="text-slate-400 text-sm">Loading...</div>';
+    actionsEl.innerHTML = '';
+    try {
+      const farmer = await api.get(`/residents/${id}`);
+      state.previewFarmer = farmer;
+      const qr = generateQRDataUrl(farmer);
+      // Render front + back side by side, scaled down for preview
+      previewEl.innerHTML = `
+        <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;transform:scale(0.85);transform-origin:center;">
+          <div id="preview-card-front">${cardFrontHTML(farmer, qr)}</div>
+          <div id="preview-card-back">${cardBackHTML(farmer)}</div>
+        </div>
+      `;
+      actionsEl.innerHTML = `
+        <button onclick="downloadSinglePDF(${id})" class="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs rounded-lg">📄 PDF</button>
+        <button onclick="downloadSingleJPG(${id})" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded-lg">🖼️ JPG</button>
+      `;
+    } catch (e) {
+      previewEl.innerHTML = `<div class="text-rose-600 text-sm">${escapeHtml(e.message)}</div>`;
+    }
+  };
+
+  // --- Single card PDF download (portrait, front + back) ---
+  window.downloadSinglePDF = async (id) => {
+    try {
+      const farmer = await api.get(`/residents/${id}`);
+      printFarmerCards([farmer], false);
+      toast(t('print_dialog_opened'), 'success');
+    } catch (e) {
+      toast(e.message, 'error');
+    }
+  };
+
+  // --- Single card JPG download (html2canvas on preview) ---
+  window.downloadSingleJPG = async (id) => {
+    try {
+      const farmer = await api.get(`/residents/${id}`);
+      const qr = generateQRDataUrl(farmer);
+      // Create a temporary off-screen container with the card
+      const tmp = document.createElement('div');
+      tmp.style.cssText = 'position:fixed;left:-9999px;top:0;';
+      tmp.innerHTML = cardStyles() + cardFrontHTML(farmer, qr);
+      document.body.appendChild(tmp);
+      const cardEl = tmp.querySelector('.farmer-card');
+      await captureCardAsJPG(cardEl, `farmer_card_${id}.jpg`);
+      document.body.removeChild(tmp);
+    } catch (e) {
+      toast(e.message, 'error');
+    }
+  };
+
+  // --- Bulk PDF download (portrait, 3 fronts per row + 3 backs per row) ---
+  window.downloadBulkCards = async () => {
+    const ids = Array.from(state.selectedIds);
+    if (!ids.length) { toast(t('no_farmers_selected'), 'warning'); return; }
+    try {
+      // Fetch all selected farmers' data
+      const farmers = [];
+      for (const id of ids) {
+        try {
+          const f = await api.get(`/residents/${id}`);
+          farmers.push(f);
+        } catch (e) { /* skip */ }
+      }
+      if (!farmers.length) { toast('No farmers found', 'error'); return; }
+      printFarmerCards(farmers, true);
+      toast(t('print_dialog_opened'), 'success');
+    } catch (e) {
+      toast(e.message, 'error');
+    }
+  };
 
   // --- Selection helpers ---
   function updateSelectionBar() {
@@ -245,50 +319,6 @@
       tr.classList.remove('bg-emerald-50', 'dark:bg-emerald-900/20');
     });
     updateSelectionBar();
-  };
-
-  // --- Single card download ---
-  window.downloadSingleCard = async (id, fmt) => {
-    try {
-      const path = `/farmer-card/${id}.${fmt}`;
-      const blob = await window.api.get(path);
-      const downloadUrl = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = downloadUrl;
-      a.download = `farmer_card_${id}.${fmt}`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(downloadUrl);
-      toast(`${t('farmer_card')} ${fmt.toUpperCase()} ${t('downloaded')}`, 'success');
-    } catch (e) {
-      toast(`${t('download_failed')}: ${e.message}`, 'error');
-    }
-  };
-
-  // --- Print card (opens HTML print view) ---
-  window.printCard = (id) => {
-    window.open(`/api/farmer-card/${id}/print`, '_blank');
-  };
-
-  // --- Bulk download ---
-  window.downloadBulkCards = async (fmt) => {
-    const ids = Array.from(state.selectedIds);
-    if (!ids.length) { toast(t('no_farmers_selected'), 'warning'); return; }
-    try {
-      const blob = await window.api.post(`/farmer-card/bulk.${fmt}`, { ids });
-      const downloadUrl = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = downloadUrl;
-      a.download = `farmer_cards_${ids.length}.${fmt}`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(downloadUrl);
-      toast(`${ids.length} ${t('farmer_card')} ${fmt.toUpperCase()} ${t('downloaded')}`, 'success');
-    } catch (e) {
-      toast(`${t('download_failed')}: ${e.message}`, 'error');
-    }
   };
 
   await loadFarmers();

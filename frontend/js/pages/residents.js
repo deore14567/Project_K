@@ -330,7 +330,6 @@
   window.gotoPage = (n) => { if (n >= 1) { state.page = n; loadList(); } };
 
   // Expose hoisted functions to window so onclick="..." attributes can call them.
-  // (openResidentForm and runEligibility are assigned later as arrow functions.)
   window.showProfile = showProfile;
   window.deleteResident = deleteResident;
 
@@ -420,7 +419,7 @@
 
         <!-- Identity -->
         <div class="bg-white dark:bg-slate-800 rounded-xl p-5 shadow-sm border border-slate-200 dark:border-slate-700">
-          <h3 class="text-sm font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-3">Identity & Family</h3>
+          <h3 class="text-sm font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-3">Identity</h3>
           <dl class="space-y-2 text-sm">
             <div class="flex justify-between gap-2">
               <dt class="text-slate-500 dark:text-slate-400">Aadhaar</dt>
@@ -430,24 +429,9 @@
                 ${r.aadhaar ? `<button onclick="copyToClipboard(${JSON.stringify(r.aadhaar)}, 'Aadhaar')" class="ml-1 text-indigo-600 text-xs">reveal</button>` : ''}
               </dd>
             </div>
-            ${fieldRow('PAN', r.pan_number, true)}
-            ${fieldRow('Voter ID', r.voter_id, true)}
-            ${fieldRow('Ration Card', r.ration_card_number, true)}
-            ${fieldRow('Family ID', r.family_id, true)}
-            ${fieldRow('Head of Family', r.is_head_of_family ? 'Yes' : 'No')}
-            ${fieldRow('Remarks', r.remarks)}
+            ${fieldRow('Farmer ID', r.farmer_id, true)}
+            ${fieldRow('गट नंबर', r.gat_number, true)}
           </dl>
-        </div>
-      </div>
-
-      <!-- Eligibility engine -->
-      <div class="bg-white dark:bg-slate-800 rounded-xl p-5 shadow-sm border border-slate-200 dark:border-slate-700">
-        <div class="flex items-center justify-between mb-3">
-          <h3 class="text-sm font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide">Smart Eligibility</h3>
-          <button onclick="runEligibility(${r.id})" class="text-sm text-indigo-600 hover:underline">Re-check</button>
-        </div>
-        <div id="eligibility-host" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-          <div class="text-sm text-slate-500">Click "Re-check" to evaluate schemes.</div>
         </div>
       </div>
 
@@ -462,17 +446,12 @@
           <tr><td class="py-1 font-medium">Mobile</td><td>${escapeHtml(r.mobile_number || '—')}</td></tr>
           <tr><td class="py-1 font-medium">Address</td><td>${escapeHtml(r.address || '—')}, ${escapeHtml(r.village || '')}, ${escapeHtml(r.district || '')} - ${escapeHtml(r.pin_code || '')}</td></tr>
           <tr><td class="py-1 font-medium">Aadhaar</td><td>${escapeHtml(r.aadhaar_masked || '—')}</td></tr>
-          <tr><td class="py-1 font-medium">PAN</td><td>${escapeHtml(r.pan_number || '—')}</td></tr>
-          <tr><td class="py-1 font-medium">Category</td><td>${escapeHtml(r.category || '—')}</td></tr>
-          <tr><td class="py-1 font-medium">Occupation</td><td>${escapeHtml(r.occupation || '—')}</td></tr>
-          <tr><td class="py-1 font-medium">Annual Income</td><td>${r.annual_income != null ? '₹' + Number(r.annual_income).toLocaleString('en-IN') : '—'}</td></tr>
+          <tr><td class="py-1 font-medium">Farmer ID</td><td>${escapeHtml(r.farmer_id || '—')}</td></tr>
+          <tr><td class="py-1 font-medium">गट नंबर</td><td>${escapeHtml(r.gat_number || '—')}</td></tr>
         </table>
         <p class="text-xs text-slate-500 mt-6">Generated on ${new Date().toLocaleString('en-IN')}</p>
       </div>
     `;
-
-    // Auto-run eligibility
-    runEligibility(r.id);
 
     window.printProfile = () => printContent(document.querySelector('.print-only').innerHTML, `Farmer ${fullName}`);
   }
@@ -489,32 +468,6 @@
       </div>
     `;
   }
-
-  window.runEligibility = async (id) => {
-    const host = document.getElementById('eligibility-host');
-    if (!host) return;
-    host.innerHTML = Array(3).fill('<div class="h-24 skeleton rounded"></div>').join('');
-    try {
-      const res = await api.get(`/residents/${id}/eligibility`);
-      if (!res.items.length) {
-        host.innerHTML = `<div class="text-sm text-slate-500 col-span-full">No active schemes configured.</div>`;
-        return;
-      }
-      host.innerHTML = res.items.map(it => `
-        <div class="border border-slate-200 dark:border-slate-700 rounded-lg p-3">
-          <div class="flex items-center justify-between gap-2 mb-2">
-            <a href="/schemes.html?id=${it.scheme_id}" class="text-sm font-medium text-slate-800 dark:text-white hover:underline">${escapeHtml(it.scheme_name)}</a>
-            ${eligibilityBadge(it.status)}
-          </div>
-          <ul class="text-xs text-slate-600 dark:text-slate-400 space-y-1 list-disc list-inside">
-            ${it.reasons.map(r => `<li>${escapeHtml(r)}</li>`).join('')}
-          </ul>
-        </div>
-      `).join('');
-    } catch (e) {
-      host.innerHTML = `<div class="text-sm text-rose-600 col-span-full">${escapeHtml(e.message)}</div>`;
-    }
-  };
 
   // --- Add / Edit form ---
   window.openResidentForm = (id = null) => {

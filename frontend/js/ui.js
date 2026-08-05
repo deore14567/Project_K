@@ -125,8 +125,10 @@ function openModal(html) {
     host = document.createElement('div');
     host.id = 'modal-host';
     host.className = 'fixed inset-0 z-[90] flex items-center justify-center p-4';
+    host.style.display = 'none';
     document.body.appendChild(host);
   }
+  host.style.display = 'flex';
   host.innerHTML = `
     <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" data-modal-close></div>
     <div class="relative bg-white dark:bg-slate-800 rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto animate-modal-in">
@@ -139,7 +141,10 @@ function openModal(html) {
 }
 function closeModal() {
   const host = document.getElementById('modal-host');
-  if (host) host.innerHTML = '';
+  if (host) {
+    host.innerHTML = '';
+    host.style.display = 'none';
+  }
 }
 window.openModal = openModal;
 window.closeModal = closeModal;

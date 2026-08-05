@@ -8,6 +8,14 @@
  */
 const API_BASE = (window.API_BASE_OVERRIDE || '/api');
 
+// --- Simple GET cache (stale-while-revalidate) --------------------------
+const _apiCache = new Map();
+const CACHE_TTL = 30000; // 30 seconds
+
+function _cacheKey(path, params) {
+  return path + JSON.stringify(params || {});
+}
+
 // --- Global loading bar --------------------------------------------------
 let _activeRequests = 0;
 let _loadingBar = null;
@@ -95,13 +103,31 @@ async function request(method, path, { body, params, isForm } = {}) {
       if (v !== undefined && v !== null && v !== '') url.searchParams.set(k, v);
     });
   }
+
+  // Check cache for GET requests (stale-while-revalidate)
+  const isGet = method === 'GET' && !body && !isForm;
+  const ck = _cacheKey(path, params);
+  if (isGet) {
+    const cached = _apiCache.get(ck);
+    if (cached) {
+      const age = Date.now() - cached.time;
+      if (age < CACHE_TTL) {
+        // Fresh — return immediately
+        return Promise.resolve(cached.data);
+      }
+      // Stale — return cached data, then revalidate in background
+      _revalidate(path, params, ck);
+      return Promise.resolve(cached.data);
+    }
+  }
+
   const headers = {};
   const token = getToken();
   if (token) headers['Authorization'] = `Bearer ${token}`;
 
   let payload;
   if (body && isForm) {
-    payload = body; // FormData — browser sets content-type
+    payload = body;
   } else if (body) {
     headers['Content-Type'] = 'application/json';
     payload = JSON.stringify(body);
@@ -136,19 +162,46 @@ async function request(method, path, { body, params, isForm } = {}) {
     throw new Error(msg);
   }
 
-  // File download — must check content-disposition too because some
-  // Excel/PDF/Word responses come back with generic content-types.
   const ct = res.headers.get('content-type') || '';
   const cd = res.headers.get('content-disposition') || '';
-  if (ct.includes('application/json')) return await res.json();
-  if (cd.includes('attachment') ||
+  let result;
+  if (ct.includes('application/json')) result = await res.json();
+  else if (cd.includes('attachment') ||
       ct.includes('text/csv') || ct.includes('application/pdf') ||
       ct.includes('application/octet-stream') ||
       ct.includes('spreadsheet') || ct.includes('wordprocessing') ||
       ct.includes('text/plain')) {
-    return await res.blob();
+    result = await res.blob();
+  } else {
+    result = await res.text();
   }
-  return await res.text();
+
+  // Cache JSON GET responses
+  if (isGet && ct.includes('application/json')) {
+    _apiCache.set(ck, { data: result, time: Date.now() });
+  }
+
+  return result;
+}
+
+// Background revalidation for stale-while-revalidate
+async function _revalidate(path, params, ck) {
+  try {
+    const url = new URL(API_BASE + path, window.location.origin);
+    if (params) {
+      Object.entries(params).forEach(([k, v]) => {
+        if (v !== undefined && v !== null && v !== '') url.searchParams.set(k, v);
+      });
+    }
+    const headers = {};
+    const token = getToken();
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const res = await fetch(url.toString(), { method: 'GET', headers });
+    if (res.ok && (res.headers.get('content-type') || '').includes('application/json')) {
+      const data = await res.json();
+      _apiCache.set(ck, { data, time: Date.now() });
+    }
+  } catch (e) { /* silent — background revalidation */ }
 }
 
 async function safeJson(res) {

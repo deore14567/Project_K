@@ -6,10 +6,9 @@
 
   main.innerHTML = `
     <!-- Stat cards -->
-    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4 mb-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
       ${[
         ['documents', 'documents', 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z', 'from-emerald-500 to-emerald-600'],
-        ['pending', 'pending_apps', 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z', 'from-orange-500 to-orange-600'],
       ].map(([key, labelKey, icon, grad]) => `
         <div class="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-700 hover:shadow-md transition-shadow">
           <div class="flex items-start justify-between">
@@ -103,7 +102,6 @@
   try {
     const s = await api.get('/dashboard/stats');
     document.getElementById('stat-documents').textContent = s.total_documents;
-    document.getElementById('stat-pending').textContent = s.pending_applications;
 
     const actEl = document.getElementById('recent-activity');
     if (!s.recent_activity.length) {

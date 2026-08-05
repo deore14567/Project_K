@@ -183,6 +183,11 @@ const TRANSLATIONS = {
     clear: 'Clear',
     downloaded: 'downloaded',
     download_failed: 'Download failed',
+    card_preview: 'Card Preview',
+    click_preview_hint: 'Click on a farmer name or the 👁️ icon to preview the card',
+    preview: 'Preview',
+    print_dialog_opened: 'Print dialog opened — select "Save as PDF" to download',
+    download_selected_pdf: 'Download Selected PDF',
 
     // Users
     manage_users: 'Manage admin & operator accounts',
@@ -376,6 +381,11 @@ const TRANSLATIONS = {
     clear: 'साफ करा',
     downloaded: 'डाउनलोड केले',
     download_failed: 'डाउनलोड अयशस्वी',
+    card_preview: 'कार्ड पूर्वावलोकन',
+    click_preview_hint: 'कार्ड पूर्वावलोकनसाठी शेतकऱ्याच्या नावावर किंवा 👁️ आयकॉनवर क्लिक करा',
+    preview: 'पूर्वावलोकन',
+    print_dialog_opened: 'प्रिंट डायलॉग उघडला — डाउनलोडसाठी "Save as PDF" निवडा',
+    download_selected_pdf: 'निवडलेले PDF डाउनलोड करा',
 
     // Users
     manage_users: 'ॲडमिन आणि ऑपरेटर खाती व्यवस्थापन',
