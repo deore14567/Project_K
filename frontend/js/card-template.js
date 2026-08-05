@@ -29,7 +29,7 @@ function cardStyles() {
         height: 54mm;
         border: 2.5px solid #16a34a;
         border-radius: 10px;
-        padding: 4mm 5mm;
+        padding: 3mm 4mm;
         box-sizing: border-box;
         background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%);
         position: relative;
@@ -49,13 +49,13 @@ function cardStyles() {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        height: 12mm;
-        margin-bottom: 1.5mm;
-        margin-top: 1mm;
+        height: 10mm;
+        margin-bottom: 1mm;
+        margin-top: 0.5mm;
       }
       .card-logo {
-        height: 10mm;
-        max-width: 16mm;
+        height: 9mm;
+        max-width: 14mm;
         object-fit: contain;
       }
       .card-agristack {
@@ -66,35 +66,35 @@ function cardStyles() {
         gap: 0.5mm;
       }
       .card-agristack img {
-        height: 5mm;
+        height: 4mm;
         object-fit: contain;
       }
       .card-agristack-text {
         color: #16a34a;
         font-weight: 700;
-        font-size: 9pt;
+        font-size: 8pt;
         line-height: 1;
       }
       .card-agristack-sub {
         color: #15803d;
-        font-size: 7pt;
+        font-size: 6pt;
         line-height: 1;
       }
       .card-title {
         text-align: center;
         color: #15803d;
         font-weight: 700;
-        font-size: 10pt;
-        margin-bottom: 2mm;
+        font-size: 9pt;
+        margin-bottom: 1.5mm;
         border-bottom: 1px solid #86efac;
-        padding-bottom: 1mm;
+        padding-bottom: 0.5mm;
       }
       .card-fields {
         flex: 1;
         display: flex;
         flex-direction: column;
         justify-content: center;
-        gap: 1.5mm;
+        gap: 1mm;
       }
       .card-field {
         display: flex;
@@ -104,19 +104,19 @@ function cardStyles() {
       .card-field-label {
         color: #6b7280;
         font-weight: 600;
-        font-size: 8pt;
+        font-size: 7.5pt;
         min-width: 28mm;
         white-space: nowrap;
       }
       .card-field-value {
         color: #1f2937;
         font-weight: 700;
-        font-size: 9pt;
+        font-size: 8.5pt;
         word-break: break-all;
         flex: 1;
       }
       .card-field-name .card-field-value {
-        font-size: 10pt;
+        font-size: 9.5pt;
         color: #111827;
       }
 
@@ -186,12 +186,18 @@ function cardStyles() {
 
 /**
  * Returns HTML for the front side of the card.
- * QR code removed per user request.
+ * Shows the FULL Aadhaar number (not masked) since this is a physical ID card.
  */
 function cardFrontHTML(farmer) {
   const name = getFarmerName(farmer);
-  const aadhaarMasked = farmer.aadhaar_masked ||
-    (farmer.aadhaar ? 'XXXX XXXX ' + farmer.aadhaar.slice(-4) : '—');
+  // Use full Aadhaar number — the card is a physical ID, the number must be visible.
+  // API returns 'aadhaar' (full) for admins, null for operators.
+  // Fall back to masked only if full number is not available.
+  const aadhaarDisplay = farmer.aadhaar || farmer.aadhaar_masked || '—';
+  // Format the Aadhaar number with spaces: 1234 5678 9012
+  const aadhaarFormatted = (aadhaarDisplay && aadhaarDisplay !== '—' && !aadhaarDisplay.includes('XXXX'))
+    ? aadhaarDisplay.replace(/(\d{4})(\d{4})(\d{4})/, '$1 $2 $3')
+    : aadhaarDisplay;
   const mobile = farmer.mobile_number || farmer.mobile || '—';
 
   return `
@@ -213,7 +219,7 @@ function cardFrontHTML(farmer) {
         </div>
         <div class="card-field">
           <span class="card-field-label">आधार / Aadhaar:</span>
-          <span class="card-field-value">${escapeHtml(aadhaarMasked)}</span>
+          <span class="card-field-value">${escapeHtml(aadhaarFormatted)}</span>
         </div>
         <div class="card-field">
           <span class="card-field-label">शेतकरी आयडी / Farmer ID:</span>
