@@ -1,30 +1,27 @@
 /* Reports page — multi-format exports with format picker */
 (async function () {
-  const user = await bootPage('reports', 'Reports', { subtitle: 'Download data exports in your preferred format' });
+  const user = await bootPage('reports', t('reports'), { subtitle: t('export_reports_desc') });
   if (!user) return;
   const main = document.getElementById('page-content');
 
   const reports = [
-    { key: 'residents',    title: 'Resident Report',         desc: 'Complete resident master list with all demographic fields.',  icon: 'M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 10-8 0 4 4 0 008 0z', color: 'from-blue-500 to-blue-600' },
-    { key: 'families',     title: 'Family Report',           desc: 'All families with head, village, ward, and member counts.',    icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3',                  color: 'from-purple-500 to-purple-600' },
-    { key: 'schemes',      title: 'Scheme Report',           desc: 'All government schemes with eligibility & status.',           icon: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16',                       color: 'from-amber-500 to-amber-600' },
-    { key: 'applications', title: 'All Applications',        desc: 'Every application regardless of status.',                     icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2', color: 'from-indigo-500 to-indigo-600', statusPicker: true },
-    { key: 'ward',         title: 'Ward Report',             desc: 'Resident counts grouped by village + ward.',                  icon: 'M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5z', color: 'from-rose-500 to-rose-600' },
-    { key: 'village',      title: 'Village Report',          desc: 'Resident counts aggregated per village.',                     icon: 'M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2z', color: 'from-emerald-500 to-emerald-600' },
+    { key: 'residents',    title: t('resident_report'),         desc: t('resident_report_desc'),         icon: 'M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 10-8 0 4 4 0 008 0z', color: 'from-blue-500 to-blue-600', statusPicker: false },
+    { key: 'applications', title: t('all_applications'),        desc: t('all_applications_desc'),        icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2', color: 'from-indigo-500 to-indigo-600', statusPicker: true },
+    { key: 'village',      title: t('village_report'),          desc: t('village_report_desc'),          icon: 'M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2z', color: 'from-emerald-500 to-emerald-600', statusPicker: false },
   ];
 
   const formats = [
-    { ext: 'xlsx', label: 'Excel',  icon: '📊', color: 'bg-emerald-600 hover:bg-emerald-700', hint: '.xlsx — opens in Excel / Sheets' },
-    { ext: 'pdf',  label: 'PDF',    icon: '📄', color: 'bg-rose-600 hover:bg-rose-700',       hint: '.pdf — print-ready' },
-    { ext: 'docx', label: 'Word',   icon: '📝', color: 'bg-blue-600 hover:bg-blue-700',       hint: '.docx — editable Word doc' },
-    { ext: 'csv',  label: 'CSV',    icon: '🗂️', color: 'bg-slate-600 hover:bg-slate-700',     hint: '.csv — universal spreadsheet' },
-    { ext: 'txt',  label: 'Text',   icon: '📃', color: 'bg-amber-600 hover:bg-amber-700',     hint: '.txt — plain text table' },
+    { ext: 'xlsx', label: t('excel'),  icon: '📊', color: 'bg-emerald-600 hover:bg-emerald-700', hint: '.xlsx — Excel' },
+    { ext: 'pdf',  label: t('pdf'),    icon: '📄', color: 'bg-rose-600 hover:bg-rose-700',       hint: '.pdf — PDF' },
+    { ext: 'docx', label: t('word'),   icon: '📝', color: 'bg-blue-600 hover:bg-blue-700',       hint: '.docx — Word' },
+    { ext: 'csv',  label: t('csv'),    icon: '🗂️', color: 'bg-slate-600 hover:bg-slate-700',     hint: '.csv — CSV' },
+    { ext: 'txt',  label: t('txt'),    icon: '📃', color: 'bg-amber-600 hover:bg-amber-700',     hint: '.txt — Text' },
   ];
 
   main.innerHTML = `
     <div class="bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 rounded-xl p-5 mb-6 border border-indigo-100 dark:border-indigo-900/40">
-      <h2 class="text-lg font-bold text-slate-800 dark:text-white">Export Reports</h2>
-      <p class="text-sm text-slate-600 dark:text-slate-400 mt-1">Choose a report, then click your preferred format. Files download instantly and open in Microsoft Office, Google Workspace, LibreOffice, or Apple iWork.</p>
+      <h2 class="text-lg font-bold text-slate-800 dark:text-white">${t('export_reports')}</h2>
+      <p class="text-sm text-slate-600 dark:text-slate-400 mt-1">${t('export_reports_desc')}</p>
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -41,14 +38,14 @@
           </div>
           ${r.statusPicker ? `
             <div class="mb-3">
-              <label class="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">Status filter (optional)</label>
+              <label class="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">${t('status_filter')}</label>
               <select id="filter-${r.key}" class="w-full px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white text-sm">
-                <option value="">All statuses</option>
-                <option value="applied">Applied</option>
-                <option value="pending">Pending</option>
-                <option value="processing">Processing</option>
-                <option value="approved">Approved</option>
-                <option value="rejected">Rejected</option>
+                <option value="">${t('all_statuses')}</option>
+                <option value="applied">${t('applied')}</option>
+                <option value="pending">${t('pending')}</option>
+                <option value="processing">${t('processing')}</option>
+                <option value="approved">${t('approved')}</option>
+                <option value="rejected">${t('rejected')}</option>
               </select>
             </div>
           ` : ''}
@@ -66,17 +63,15 @@
     </div>
 
     <div class="mt-6 bg-white dark:bg-slate-800 rounded-xl p-5 shadow-sm border border-slate-200 dark:border-slate-700">
-      <h3 class="font-semibold text-slate-800 dark:text-white mb-2">Need a custom report?</h3>
-      <p class="text-sm text-slate-600 dark:text-slate-400 mb-3">Use the filters on the Residents or Applications page to narrow down your list, then click the "Download" button at the top of the page to export the filtered set.</p>
-      <div class="flex gap-2">
-        <a href="/residents.html" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm rounded-lg">Go to Residents →</a>
-        <a href="/applications.html" class="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-sm rounded-lg">Go to Applications →</a>
+      <h3 class="font-semibold text-slate-800 dark:text-white mb-2">${t('need_custom_report')}</h3>
+      <p class="text-sm text-slate-600 dark:text-slate-400 mb-3">${t('custom_report_hint')}</p>
+      <div class="flex gap-2 flex-wrap">
+        <a href="/farmer-card.html" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm rounded-lg">${t('farmer_card')} →</a>
+        <a href="/residents.html" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm rounded-lg">${t('go_to_farmers')} →</a>
       </div>
     </div>
   `;
 
-  // `downloadReport` is defined in ui.js.
-  // For applications with a status filter, we need to pass params.
   const origDownloadReport = window.downloadReport;
   window.downloadReport = async (entity, fmt) => {
     const filterEl = document.getElementById(`filter-${entity}`);

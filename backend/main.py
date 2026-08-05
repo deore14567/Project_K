@@ -28,6 +28,7 @@ from .routers import (
     audit as audit_router,
     reports as reports_router,
     dashboard as dashboard_router,
+    farmer_card as farmer_card_router,
 )
 
 # --- Resolve frontend folder ---------------------------------------------
@@ -84,6 +85,7 @@ app.include_router(applications_router.router, prefix=api_prefix)
 app.include_router(audit_router.router, prefix=api_prefix)
 app.include_router(reports_router.router, prefix=api_prefix)
 app.include_router(dashboard_router.router, prefix=api_prefix)
+app.include_router(farmer_card_router.router, prefix=api_prefix)
 
 
 # --- Static frontend -----------------------------------------------------
