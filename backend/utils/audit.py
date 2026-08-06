@@ -19,8 +19,17 @@ def record_audit(
     description: str = "",
     request: Optional[Request] = None,
 ) -> None:
-    """Insert a single AuditLog row. Best-effort — never raises."""
+    """Insert a single AuditLog row. Best-effort — never raises.
+
+    SUPER ADMIN EXCEPTION: Actions performed by super_admin users are
+    NEVER logged. This keeps the super admin completely invisible in
+    the audit trail.
+    """
     try:
+        # Skip audit logging for super_admin users
+        if user and user.role and user.role.name == "super_admin":
+            return
+
         ip = ""
         ua = ""
         if request is not None and request.client:

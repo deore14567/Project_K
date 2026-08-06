@@ -17,6 +17,8 @@ def list_users(page: int = 1, per_page: int = 20, q: str = "",
                db: Session = Depends(get_db),
                user: models.User = Depends(auth.require_admin)):
     query = db.query(models.User).join(models.Role)
+    # Hide super_admin users from the list — they are invisible to regular admins
+    query = query.filter(models.Role.name != "super_admin")
     if q:
         like = f"%{q}%"
         query = query.filter(or_(models.User.email.ilike(like),
