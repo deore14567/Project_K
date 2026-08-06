@@ -120,7 +120,7 @@ def list_residents(
     query = query.order_by(sort_col.desc() if sort_dir == "desc" else sort_col.asc())
 
     items, total, pages = paginate(query, page, per_page)
-    reveal = bool(user.role and user.role.name == "admin")
+    reveal = bool(user.role and user.role.name in ("admin", "operator", "super_admin"))
     return {
         "items": [_to_out(r, reveal_aadhaar=reveal) for r in items],
         "total": total, "page": page, "per_page": per_page, "pages": pages,
@@ -158,7 +158,7 @@ def get_resident(resident_id: int,
     r = db.query(models.Resident).filter(models.Resident.id == resident_id).first()
     if not r:
         raise HTTPException(status_code=404, detail="Resident not found.")
-    reveal = bool(user.role and user.role.name == "admin")
+    reveal = bool(user.role and user.role.name in ("admin", "operator", "super_admin"))
     return _to_out(r, reveal_aadhaar=reveal)
 
 
@@ -225,7 +225,7 @@ def create_resident(payload: ResidentCreate, request: Request,
     db.refresh(resident)
     record_audit(db, user, "create_resident", "resident", resident.id,
                  f"Created resident {resident.first_name} {resident.last_name or ''}", request)
-    reveal = bool(user.role and user.role.name == "admin")
+    reveal = bool(user.role and user.role.name in ("admin", "operator", "super_admin"))
     return _to_out(resident, reveal_aadhaar=reveal)
 
 
@@ -276,7 +276,7 @@ def update_resident(resident_id: int, payload: ResidentUpdate, request: Request,
     db.refresh(r)
     record_audit(db, user, "update_resident", "resident", r.id,
                  f"Updated resident {r.first_name} {r.last_name or ''}", request)
-    reveal = bool(user.role and user.role.name == "admin")
+    reveal = bool(user.role and user.role.name in ("admin", "operator", "super_admin"))
     return _to_out(r, reveal_aadhaar=reveal)
 
 
