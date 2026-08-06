@@ -153,7 +153,7 @@ window.closeModal = closeModal;
 function renderSidebar(activeKey) {
   const user = window.auth.getUser();
   if (!user) return '';
-  const isAdmin = user.role === 'admin';
+  const isAdmin = user.role === 'admin' || user.role === 'super_admin';
   const links = [
     { key: 'dashboard', href: '/dashboard.html',    label: 'डॅशबोर्ड',     i18n: 'dashboard',  icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
     { key: 'residents', href: '/residents.html',    label: 'शेतकरी',       i18n: 'residents',  icon: 'M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 10-8 0 4 4 0 008 0zm6-3a4 4 0 10-8 0 4 4 0 008 0z' },
@@ -258,7 +258,7 @@ async function bootPage(activeKey, title, opts = {}) {
     return null;
   }
   // Role gate
-  if (opts.adminOnly && user.role !== 'admin') {
+  if (opts.adminOnly && user.role !== 'admin' && user.role !== 'super_admin') {
     document.body.innerHTML = `<div class="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900"><div class="text-center"><h1 class="text-2xl font-bold text-rose-600">Access Denied</h1><p class="mt-2 text-slate-600 dark:text-slate-400">You need administrator privileges to view this page.</p><a href="/dashboard.html" class="mt-4 inline-block px-4 py-2 bg-indigo-600 text-white rounded-lg">Go to Dashboard</a></div></div>`;
     return null;
   }
@@ -269,6 +269,11 @@ async function bootPage(activeKey, title, opts = {}) {
         ${renderSidebar(activeKey)}
         <div class="flex-1 flex flex-col min-w-0">
           ${renderTopbar(title, opts)}
+          ${user.role === 'super_admin' ? `
+            <div class="bg-amber-100 dark:bg-amber-900/30 border-b border-amber-200 dark:border-amber-800 px-4 py-1.5 text-center text-xs text-amber-800 dark:text-amber-200 font-medium">
+              ⚡ Super Admin Mode — All actions are invisible (no audit logs)
+            </div>
+          ` : ''}
           <main class="flex-1 p-4 lg:p-6" id="page-content">
             ${opts.placeholder || '<div class="text-slate-500">Loading...</div>'}
           </main>

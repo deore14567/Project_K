@@ -72,9 +72,13 @@
               <span class="px-2 py-0.5 text-xs rounded-full ${u.is_active ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-200' : 'bg-rose-100 text-rose-700 dark:bg-rose-900 dark:text-rose-200'}">${u.is_active ? 'Active' : 'Disabled'}</span>
             </td>
             <td class="px-4 py-3 text-xs text-slate-500">${u.last_login ? fmtDateTime(u.last_login) : 'Never'}</td>
-            <td class="px-4 py-3 text-right">
+            <td class="px-4 py-3 text-right whitespace-nowrap">
               <button onclick="openUserForm(${u.id})" class="text-indigo-600 hover:underline text-sm mr-2">Edit</button>
-              ${u.id !== user.id ? `<button onclick="deleteUser(${u.id})" class="text-rose-600 hover:underline text-sm">Delete</button>` : '<span class="text-xs text-slate-400">(you)</span>'}
+              ${u.id !== user.id ? `
+                <button onclick="resetUserPassword(${u.id}, '${escapeHtml(u.email)}')" class="text-amber-600 hover:underline text-sm mr-2">Reset Password</button>
+                <button onclick="toggleBlockUser(${u.id}, ${u.is_active})" class="${u.is_active ? 'text-rose-600' : 'text-emerald-600'} hover:underline text-sm mr-2">${u.is_active ? 'Block' : 'Unblock'}</button>
+                <button onclick="deleteUser(${u.id})" class="text-rose-600 hover:underline text-sm">Delete</button>
+              ` : '<span class="text-xs text-slate-400">(you)</span>'}
             </td>
           </tr>
         `).join('');
@@ -96,6 +100,49 @@
   }
 
   window.gotoPage = (n) => { if (n >= 1) { state.page = n; loadList(); } };
+
+  // Quick action: reset password
+  window.resetUserPassword = (id, email) => {
+    openModal(`
+      <div class="p-5 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+        <h3 class="font-semibold text-slate-800 dark:text-white">Reset Password — ${escapeHtml(email)}</h3>
+        <button onclick="closeModal()" class="text-slate-400 text-xl">&times;</button>
+      </div>
+      <form id="reset-pw-form" class="p-5 space-y-3">
+        <div>
+          <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">New Password <span class="text-rose-500">*</span></label>
+          <input name="password" type="password" required minlength="6" class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white text-sm" />
+        </div>
+        <div class="bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-lg p-3 text-xs text-amber-700 dark:text-amber-300">
+          ℹ️ Passwords are hashed with bcrypt and cannot be viewed. You can only set a new password.
+        </div>
+        <div class="flex justify-end gap-2 pt-3 border-t border-slate-200 dark:border-slate-700">
+          <button type="button" onclick="closeModal()" class="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg">Cancel</button>
+          <button type="submit" class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg">Set New Password</button>
+        </div>
+      </form>
+    `);
+    document.getElementById('reset-pw-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      try {
+        await api.put(`/users/${id}`, { password: fd.get('password') });
+        toast('Password reset successfully', 'success');
+        closeModal();
+      } catch (err) { toast(err.message, 'error'); }
+    });
+  };
+
+  // Quick action: block / unblock user
+  window.toggleBlockUser = async (id, currentlyActive) => {
+    const action = currentlyActive ? 'Block' : 'Unblock';
+    if (!confirm(`${action} this user account?`)) return;
+    try {
+      await api.put(`/users/${id}`, { is_active: !currentlyActive });
+      toast(`User ${action.toLowerCase()}ed`, 'success');
+      loadList();
+    } catch (e) { toast(e.message, 'error'); }
+  };
   window.openUserForm = (id = null) => {
     const isEdit = !!id;
     openModal(`

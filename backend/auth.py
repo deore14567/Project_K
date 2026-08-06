@@ -117,8 +117,8 @@ def is_super_admin(user: models.User) -> bool:
 
 
 def require_admin_or_operator(user: models.User = Depends(get_current_user)) -> models.User:
-    """Require an authenticated user (admin or operator)."""
-    if not user.role or user.role.name not in ("admin", "operator"):
+    """Require an authenticated user (admin, operator, or super_admin)."""
+    if not user.role or user.role.name not in ("admin", "operator", "super_admin"):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
                             detail="Insufficient privileges.")
     return user
